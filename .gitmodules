@@ -1,0 +1,3 @@
+[submodule "vendor/tantan"]
+	path = vendor/tantan
+	url = https://gitlab.com/mcfrith/tantan
