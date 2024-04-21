@@ -6,8 +6,8 @@ from libc.limits cimport INT_MAX
 from libc.stdlib cimport calloc, free
 
 from .tantan.options cimport TantanOptions, OutputType
-from .tantan.alphabet cimport Alphabet, DNA, PROTEIN
-from .tantan.score_matrix cimport ScoreMatrix, BLOSUM62
+from .tantan.alphabet cimport Alphabet as _Alphabet, DNA, PROTEIN
+from .tantan.score_matrix cimport ScoreMatrix as _ScoreMatrix
 from .tantan.utils cimport unstringify
 from .tantan.lc cimport LambdaCalculator
 
@@ -21,27 +21,99 @@ if SSE4_BUILD_SUPPORT:
 #     from pytantan.platform.avx2 cimport maskSequencesAVX2
 
 
+cdef class Alphabet:
+    cdef _Alphabet _abc
+
+    @classmethod
+    def dna(cls):
+        cdef Alphabet abc = cls.__new__(cls)
+        abc._abc.fromString(DNA)
+        return abc
+
+    @classmethod
+    def protein(cls):
+        cdef Alphabet abc = cls.__new__(cls)
+        abc._abc.fromString(PROTEIN)
+        return abc
+
+
+cdef class ScoreMatrix:
+    cdef readonly Alphabet     alphabet
+    cdef          _ScoreMatrix scoring
+
+    cdef double* probMatrix
+    cdef double** probMatrixPointers
+    cdef int* fastMatrix
+    cdef int** fastMatrixPointers
+
+    def __init__(self, Alphabet alphabet not None):
+        # 
+        self.alphabet = alphabet      
+
+        # make scoring matrix
+        self.scoring.initMatchMismatch(1, 1, b"ACGTU")
+
+        self.probMatrix = <double*> calloc(sizeof(double), 64*64)
+        if self.probMatrix is NULL:
+            raise MemoryError
+        self.probMatrixPointers = <double**> calloc(sizeof(double*), 64)
+        if self.probMatrixPointers is NULL:
+            raise MemoryError      
+        self.fastMatrix = <int*> calloc(sizeof(int), 64*64)
+        if self.fastMatrix is NULL:
+            raise MemoryError
+        self.fastMatrixPointers = <int**> calloc(sizeof(int*), 64)
+        if self.fastMatrixPointers is NULL:
+            raise MemoryError
+
+        for i in range(64):
+            self.fastMatrixPointers[i] = &self.fastMatrix[i * 64]
+            self.probMatrixPointers[i] = &self.probMatrix[i * 64]
+        for i in range(64*64):
+            self.fastMatrix[i] = 0
+            self.probMatrix[i] = 0.0
+
+        self.scoring.makeFastMatrix(
+            self.fastMatrixPointers, 
+            64, 
+            self.alphabet._abc.lettersToNumbers, 
+            self.scoring.minScore(), 
+            False
+        )
+
+        cdef LambdaCalculator lc = LambdaCalculator()
+        lc.calculate(self.fastMatrixPointers, self.alphabet._abc.size)
+        if lc.isBad():
+            raise RuntimeError("cannot calculate probabilities for score matrix")
+        
+        cdef double matrixLambda = lc.lambda_()
+        for i in range(64):
+            for j in range(64):
+                x = matrixLambda * self.fastMatrixPointers[i][j]
+                self.probMatrixPointers[i][j] = exp(x)
+
+
+
 cdef class Tantan:
-    cdef TantanOptions options
-    cdef Alphabet      alphabet
+    cdef          TantanOptions _options
+    cdef readonly Alphabet      alphabet
+    cdef readonly ScoreMatrix   score_matrix
 
     def __init__(
         self,
+        ScoreMatrix score_matrix not None,
         *, 
         bint protein = False,
     ):
+        # store score matrix and alphabet
+        self.score_matrix = score_matrix
+        self.alphabet = score_matrix.alphabet
         # initialize options
-        self.options.isProtein = protein
-        if self.options.maxCycleLength < 0:
-            self.options.maxCycleLength = 50 if protein else 100
-        if self.options.mismatchCost == 0:
-            self.options.mismatchCost = INT_MAX
-
-        # initialize alphabet
-        if self.options.isProtein:
-            self.alphabet.fromString(PROTEIN)
-        else:
-            self.alphabet.fromString(DNA)        
+        self._options.isProtein = protein
+        if self._options.maxCycleLength < 0:
+            self._options.maxCycleLength = 50 if protein else 100
+        if self._options.mismatchCost == 0:
+            self._options.mismatchCost = INT_MAX
 
     def mask(self, object sequence):
         # extract sequence (FIXME)
@@ -52,70 +124,20 @@ cdef class Tantan:
         
         cdef unsigned char[::1] seq = sequence
 
-        # make scoring matrix
-        cdef ScoreMatrix   scoring = ScoreMatrix()
-        scoring.initMatchMismatch(1, 1, b"ACGTU")
-
-        cdef double* probMatrix = <double*> calloc(sizeof(double), 64*64)
-        if probMatrix is NULL:
-            raise MemoryError
-        cdef double** probMatrixPointers = <double**> calloc(sizeof(double*), 64)
-        if probMatrixPointers is NULL:
-            raise MemoryError      
-        cdef int* fastMatrix = <int*> calloc(sizeof(int), 64*64)
-        if fastMatrix is NULL:
-            raise MemoryError
-        cdef int** fastMatrixPointers = <int**> calloc(sizeof(int*), 64)
-        if fastMatrixPointers is NULL:
-            raise MemoryError
-
-        for i in range(64):
-            fastMatrixPointers[i] = &fastMatrix[i * 64]
-            probMatrixPointers[i] = &probMatrix[i * 64]
-        for i in range(64*64):
-            fastMatrix[i] = 0
-            probMatrix[i] = 0.0
-
-        scoring.makeFastMatrix(
-            fastMatrixPointers, 
-            64, 
-            self.alphabet.lettersToNumbers, 
-            scoring.minScore(), 
-            False
-        )
-
-        # for i in range(self.alphabet.size):
-        #     for j in range(self.alphabet.size):
-        #         print(fastMatrixPointers[i][j], end=" ")
-        #     print()
-
-        cdef LambdaCalculator lc = LambdaCalculator()
-        lc.calculate(fastMatrixPointers, self.alphabet.size)
-        if lc.isBad():
-            raise RuntimeError("cannot calculate probabilities for score matrix")
-        
-        cdef double matrixLambda = lc.lambda_()
-        for i in range(64):
-            for j in range(64):
-                x = matrixLambda * fastMatrixPointers[i][j]
-                if self.options.outputType != OutputType.repOut:
-                    x = exp(x)
-                probMatrixPointers[i][j] = x
-
-        self.alphabet.encodeInPlace(&seq[0], &seq[seq.shape[0]])
+        self.alphabet._abc.encodeInPlace(&seq[0], &seq[seq.shape[0]])
         maskSequencesSSE4(
             &seq[0],
             &seq[seq.shape[0]],
             100,
-            <const double**> probMatrixPointers,
+            <const double**> self.score_matrix.probMatrixPointers,
             0.005,
             0.05,
             0.9,
             0.0, #firstGapProb,
             0.0, #otherGapProb,
             0.5,
-            self.alphabet.numbersToLowercase,
+            self.alphabet._abc.numbersToLowercase,
         )
 
-        self.alphabet.decodeInPlace(&seq[0], &seq[seq.shape[0]])
+        self.alphabet._abc.decodeInPlace(&seq[0], &seq[seq.shape[0]])
         return sequence.decode()
