@@ -1,0 +1,5 @@
+sse2.*
+sse4.*
+generic.*
+avx2.*
+neon.*
