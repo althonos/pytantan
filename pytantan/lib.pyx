@@ -1,8 +1,10 @@
 # distutils: language = c++
 # cython: language_level=3, linetrace=True, binding=True
 
+# --- C imports ----------------------------------------------------------------
+
 from libc.math cimport exp
-from libc.limits cimport INT_MAX
+from libc.limits cimport INT_MAX, UCHAR_MAX
 from libc.stdlib cimport calloc, free
 from libcpp.vector cimport vector
 
@@ -28,10 +30,15 @@ cdef extern from "<cctype>" namespace "std" nogil:
     cdef int toupper(int ch)
     cdef int tolower(int ch)
 
+# --- Python imports -----------------------------------------------------------
 
 import array
 import itertools
 
+# --- Runtime CPU detection ----------------------------------------------------
+
+
+# --- Parameters ---------------------------------------------------------------
 
 cdef class Alphabet:
     cdef readonly str       letters
@@ -214,7 +221,7 @@ cdef class ScoreMatrix:
             x = self.alphabet._abc.numbersToLetters[i]
             a = self.alphabet._abc.lettersToNumbers[toupper(x)]
             b = self.alphabet._abc.lettersToNumbers[tolower(x)]
-            
+
             for j in range(self.alphabet._abc.size):
                 y = self.alphabet._abc.numbersToLetters[j]
                 c = self.alphabet._abc.lettersToNumbers[toupper(y)]
@@ -226,7 +233,7 @@ cdef class ScoreMatrix:
                 self.fastMatrixPointers[b][d] = scores[i][j]
 
     def __init__(self, Alphabet alphabet not None, object matrix not None):
-        cdef double              lambda_  
+        cdef double              lambda_
         cdef vector[vector[int]] scores  = vector[vector[int]]()
         cdef LambdaCalculator    lc      = LambdaCalculator()
 
@@ -261,7 +268,9 @@ cdef class ScoreMatrix:
                 self.probMatrixPointers[i][j] = exp(x)
 
 
-cdef class Tantan:
+# --- RepeatFinder -------------------------------------------------------------
+
+cdef class RepeatFinder:
     cdef          TantanOptions _options
     cdef readonly Alphabet      alphabet
     cdef readonly ScoreMatrix   score_matrix
@@ -288,18 +297,20 @@ cdef class Tantan:
         self._options.repeatOffsetProbDecay = decay
 
     cpdef object get_probabilities(self, object sequence):
+        cdef unsigned char[::1] seq
         # extract sequence (FIXME)
         if isinstance(sequence, str):
-            sequence = bytearray(sequence, 'ascii')
+            seq = bytearray(sequence, 'ascii')
         elif not isinstance(sequence, bytearray):
-            sequence = bytearray(sequence)
-        cdef unsigned char[::1] seq = sequence
+            seq = bytearray(sequence)
+        else:
+            seq = sequence.copy()
         # prepare probability array
         cdef object     probas = array.array("f", itertools.repeat(0.0, seq.shape[0]))
         cdef float[::1] p      = probas
         # compute probabilities
+        self.alphabet.encode_into(seq, seq)
         with nogil:
-            self.alphabet._abc.encodeInPlace(&seq[0], &seq[seq.shape[0]])
             getProbabilitiesNone(
                 &seq[0],
                 &seq[seq.shape[0]],
@@ -312,19 +323,38 @@ cdef class Tantan:
                 0.0, #otherGapProb,
                 &p[0],
             )
-            self.alphabet._abc.decodeInPlace(&seq[0], &seq[seq.shape[0]])
         return probas
 
-    cpdef str mask(self, object sequence):
-        # extract sequence (FIXME)
+    cpdef str mask_repeats(
+        self,
+        object sequence,
+        double threshold = 0.5,
+        object mask = None,
+    ):
+        cdef unsigned char[::1]    seq
+        cdef vector[unsigned char] mask_data
+        cdef unsigned char*        mask_ptr
+        # extract sequence
         if isinstance(sequence, str):
-            sequence = bytearray(sequence, 'ascii')
+            seq = bytearray(sequence, 'ascii')
         elif not isinstance(sequence, bytearray):
-            sequence = bytearray(sequence)
-        cdef unsigned char[::1] seq = sequence
+            seq = bytearray(sequence)
+        else:
+            seq = sequence.copy()
+        # build mask
+        if mask is not None:
+            if ord(mask) >= UCHAR_MAX:
+                raise ValueError(f"Invalid mask symbol: {mask!r}")
+            mask_char = self.alphabet._abc.lettersToNumbers[ord(mask)]
+            if mask_char == UCHAR_MAX:
+                raise ValueError(f"Invalid mask symbol: {mask!r}")
+            mask_data.resize(UCHAR_MAX, mask_char)
+            mask_ptr = mask_data.data()
+        else:
+            mask_ptr = self.alphabet._abc.numbersToLowercase
         # mask sequence
+        self.alphabet.encode_into(seq, seq)
         with nogil:
-            self.alphabet._abc.encodeInPlace(&seq[0], &seq[seq.shape[0]])
             maskSequencesNone(
                 &seq[0],
                 &seq[seq.shape[0]],
@@ -335,8 +365,7 @@ cdef class Tantan:
                 self._options.repeatOffsetProbDecay,
                 0.0, #firstGapProb,
                 0.0, #otherGapProb,
-                self._options.minMaskProb,
-                self.alphabet._abc.numbersToLowercase,
+                threshold,
+                mask_ptr,
             )
-            self.alphabet._abc.decodeInPlace(&seq[0], &seq[seq.shape[0]])
-        return sequence.decode()
+        return self.alphabet.decode(seq)
