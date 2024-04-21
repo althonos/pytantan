@@ -24,35 +24,135 @@ from pytantan.platform.generic cimport maskSequencesNone
 #     from pytantan.platform.avx2 cimport maskSequencesAVX2
 
 cdef extern from "<cctype>" namespace "std" nogil:
+    cdef bint isalpha(int ch)
     cdef int toupper(int ch)
     cdef int tolower(int ch)
 
 
 cdef class Alphabet:
-    cdef _Alphabet _abc
-    cdef bint      _protein
+    cdef readonly str       letters
+    cdef          bint      _protein
+    cdef          _Alphabet _abc
 
     @classmethod
     def dna(cls):
-        return cls(DNA, protein=False)
+        return cls(DNA.decode('ascii'), protein=False)
 
     @classmethod
     def amino(cls):
-        return cls(PROTEIN, protein=True)
+        return cls(PROTEIN.decode('ascii'), protein=True)
 
-    def __init__(self, object letters not None, bint protein = False):
-        if isinstance(letters, str):
-            letters = letters.encode('ascii')
+    def __init__(self, str letters not None, bint protein = False):
+        self.letters = letters
         self._protein = protein
-        self._abc.fromString(letters)
+        self._abc.fromString(self.letters.encode('ascii'))
 
-    @property
-    def letters(self):
-        cdef size_t i
-        return ''.join(
-            chr(self._abc.numbersToLetters[i])
-            for i in range(self._abc.size)
-        )
+    def __len__(self):
+        return self.length
+
+    def __contains__(self, object item):
+        return item in self.letters
+
+    def __getitem__(self, ssize_t index):
+        cdef ssize_t index_ = index
+        if index_ < 0:
+            index_ += self._abc.size
+        if index_ < 0 or index_ >= self._abc.size:
+            raise IndexError(index)
+        return chr(self._abc.numbersToLetters[index_])
+
+    def __reduce__(self):
+        return type(self), (self.letters,)
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self.letters!r})"
+
+    def __str__(self):
+        return self.letters
+
+    def __eq__(self, object item):
+        if isinstance(item, str):
+            return self.letters == item
+        elif isinstance(item, Alphabet):
+            return self.letters == item.letters
+        else:
+            return False
+
+    cpdef void encode_into(self, const unsigned char[:] sequence, unsigned char[:] encoded):
+        r"""Encode a sequence to ordinal-encoding into the given buffer.
+        """
+        cdef ssize_t       i
+        cdef unsigned char code
+        cdef unsigned char letter
+
+        if sequence.shape[0] != encoded.shape[0]:
+            raise ValueError("Buffers do not have the same dimensions")
+
+        with nogil:
+            for i in range(sequence.shape[0]):
+                letter = sequence[i]
+                if not isalpha(letter):
+                    raise ValueError(f"Character outside ASCII range: {chr(letter)!r}")
+                code = self._abc.lettersToNumbers[<unsigned char> letter]
+                if code == 255:
+                    raise ValueError(f"Non-alphabet character in sequence: {chr(letter)!r}")
+                encoded[i] = code
+
+    cpdef void decode_into(self, const unsigned char[:] encoded, unsigned char[:] sequence):
+        r"""Decode a sequence from ordinal-encoding into the given buffer.
+        """
+        cdef unsigned char code
+        cdef size_t        length = len(self.letters)
+
+        if sequence.shape[0] != encoded.shape[0]:
+            raise ValueError("Buffers do not have the same dimensions")
+
+        with nogil:
+            for i in range(encoded.shape[0]):
+                code = encoded[i]
+                sequence[i] = self._abc.numbersToLetters[code]
+
+    cpdef bytes encode(self, object sequence):
+        r"""Encode a sequence to an ordinal-encoded sequence using the alphabet.
+
+        Arguments:
+            sequence (`str` or byte-like object): The sequence to encode.
+
+        Raises:
+            `ValueError`: When the sequence contains invalid characters, or
+            unknown sequence characters while the alphabet contains no
+            wildcard character.
+
+        Example:
+            >>> alphabet = Alphabet("ACGT")
+            >>> alphabet.encode("GATACA")
+            b'\x02\x00\x03\x00\x01\x00'
+
+        """
+        cdef bytearray encoded = bytearray(len(sequence))
+        if isinstance(sequence, str):
+            sequence = sequence.encode('ascii')
+        self.encode_into(sequence, encoded)
+        return bytes(encoded)
+
+    cpdef str decode(self, object encoded):
+        r"""Decode an ordinal-encoded sequence using the alphabet.
+
+        Arguments:
+            sequence (byte-like object): The sequence to decode.
+
+        Raises:
+            `ValueError`: When the sequence contains invalid indices.
+
+        Example:
+            >>> alphabet = Alphabet("ACGT")
+            >>> alphabet.decode(bytearray([2, 0, 3, 0, 1, 0]))
+            'GATACA'
+
+        """
+        cdef bytearray decoded = bytearray(len(encoded))
+        self.decode_into(encoded, decoded)
+        return decoded.decode('ascii')
 
 
 cdef class ScoreMatrix:
