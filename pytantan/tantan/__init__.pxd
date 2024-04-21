@@ -14,6 +14,19 @@ cdef extern from "tantan.hh" namespace "tantan" nogil:
         const unsigned char* maskTable
     ) except +
 
+    void getProbabilities(
+        const unsigned char* seqBeg,
+        const unsigned char* seqEnd,
+        int maxRepeatOffset,
+        const double** likelihoodRationMatrix,
+        double repeatProb,
+        double repeatEndProb,
+        double repeatOffsetProbDecay,
+        double firstGapProb,
+        double otherGapProb,
+        float* probabilities
+    ) except +
+
 
 cdef extern from * nogil:
     """

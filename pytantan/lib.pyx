@@ -13,7 +13,7 @@ from .tantan.score_matrix cimport ScoreMatrix as _ScoreMatrix, BLOSUM62
 from .tantan.utils cimport unstringify
 from .tantan.lc cimport LambdaCalculator
 
-from pytantan.platform.generic cimport maskSequencesNone
+from pytantan.platform.generic cimport maskSequencesNone, getProbabilitiesNone
 # if NEON_BUILD_SUPPORT:
 #     from pytantan.platform.neon cimport maskSequencesNEON
 # if SSE2_BUILD_SUPPORT:
@@ -27,6 +27,10 @@ cdef extern from "<cctype>" namespace "std" nogil:
     cdef bint isalpha(int ch)
     cdef int toupper(int ch)
     cdef int tolower(int ch)
+
+
+import array
+import itertools
 
 
 cdef class Alphabet:
@@ -283,15 +287,42 @@ cdef class Tantan:
         self._options.repeatEndProb = repeat_end
         self._options.repeatOffsetProbDecay = decay
 
-    def mask(self, object sequence):
+    cpdef object get_probabilities(self, object sequence):
         # extract sequence (FIXME)
         if isinstance(sequence, str):
             sequence = bytearray(sequence, 'ascii')
         elif not isinstance(sequence, bytearray):
             sequence = bytearray(sequence)
-
         cdef unsigned char[::1] seq = sequence
+        # prepare probability array
+        cdef object     probas = array.array("f", itertools.repeat(0.0, seq.shape[0]))
+        cdef float[::1] p      = probas
+        # compute probabilities
+        with nogil:
+            self.alphabet._abc.encodeInPlace(&seq[0], &seq[seq.shape[0]])
+            getProbabilitiesNone(
+                &seq[0],
+                &seq[seq.shape[0]],
+                self._options.maxCycleLength,
+                <const double**> self.score_matrix.probMatrixPointers,
+                self._options.repeatProb,
+                self._options.repeatEndProb,
+                self._options.repeatOffsetProbDecay,
+                0.0, #firstGapProb,
+                0.0, #otherGapProb,
+                &p[0],
+            )
+            self.alphabet._abc.decodeInPlace(&seq[0], &seq[seq.shape[0]])
+        return probas
 
+    cpdef str mask(self, object sequence):
+        # extract sequence (FIXME)
+        if isinstance(sequence, str):
+            sequence = bytearray(sequence, 'ascii')
+        elif not isinstance(sequence, bytearray):
+            sequence = bytearray(sequence)
+        cdef unsigned char[::1] seq = sequence
+        # mask sequence
         with nogil:
             self.alphabet._abc.encodeInPlace(&seq[0], &seq[seq.shape[0]])
             maskSequencesNone(
@@ -308,5 +339,4 @@ cdef class Tantan:
                 self.alphabet._abc.numbersToLowercase,
             )
             self.alphabet._abc.decodeInPlace(&seq[0], &seq[seq.shape[0]])
-
         return sequence.decode()

@@ -31,3 +31,29 @@ cdef int maskSequences${SIMD}(
     )
     return 0
 
+
+cdef int getProbabilities${SIMD}(
+    const unsigned char* seqBeg,
+    const unsigned char* seqEnd,
+    int maxRepeatOffset,
+    const double** likelihoodRationMatrix,
+    double repeatProb,
+    double repeatEndProb,
+    double repeatOffsetProbDecay,
+    double firstGapProb,
+    double otherGapProb,
+    float* probabilities
+) except 1 nogil:
+    tantan.getProbabilities(
+        seqBeg,
+        seqEnd,
+        maxRepeatOffset,
+        likelihoodRationMatrix,
+        repeatProb,
+        repeatEndProb,
+        repeatOffsetProbDecay,
+        firstGapProb,
+        otherGapProb,
+        probabilities,
+    )
+    return 0
