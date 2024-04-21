@@ -11,12 +11,13 @@ from .tantan.score_matrix cimport ScoreMatrix as _ScoreMatrix, BLOSUM62
 from .tantan.utils cimport unstringify
 from .tantan.lc cimport LambdaCalculator
 
+from pytantan.platform.generic cimport maskSequencesNone
 # if NEON_BUILD_SUPPORT:
 #     from pytantan.platform.neon cimport maskSequencesNEON
 # if SSE2_BUILD_SUPPORT:
     # from .platform.sse2 cimport maskSequencesSSE2
-if SSE4_BUILD_SUPPORT:
-    from pytantan.platform.sse4 cimport maskSequencesSSE4
+# if SSE4_BUILD_SUPPORT:
+#     from pytantan.platform.sse4 cimport maskSequencesSSE4
 # if AVX2_BUILD_SUPPORT:
 #     from pytantan.platform.avx2 cimport maskSequencesAVX2
 
@@ -57,10 +58,8 @@ cdef class ScoreMatrix:
     cdef int*     fastMatrix
     cdef int**    fastMatrixPointers
 
-    def __init__(self, object alphabet not None):
-        #
-        if not isinstance(alphabet, Alphabet):
-            alphabet = Alphabet(alphabet)
+    def __init__(self, Alphabet alphabet not None):
+        # record alphabet
         self.alphabet = alphabet
 
         # make scoring matrix
@@ -114,7 +113,6 @@ cdef class ScoreMatrix:
                 self.probMatrixPointers[i][j] = exp(x)
 
 
-
 cdef class Tantan:
     cdef          TantanOptions _options
     cdef readonly Alphabet      alphabet
@@ -124,17 +122,22 @@ cdef class Tantan:
         self,
         ScoreMatrix score_matrix not None,
         *,
-        bint protein = False,
+        double repeat_start = 0.005,
+        double repeat_end = 0.05,
+        double decay = 0.9,
     ):
         # store score matrix and alphabet
         self.score_matrix = score_matrix
         self.alphabet = score_matrix.alphabet
         # initialize options
-        self._options.isProtein = protein
+        self._options.isProtein = self.alphabet._protein
         if self._options.maxCycleLength < 0:
             self._options.maxCycleLength = 50 if self.alphabet._protein else 100
         if self._options.mismatchCost == 0:
             self._options.mismatchCost = INT_MAX
+        self._options.repeatProb = repeat_start
+        self._options.repeatEndProb = repeat_end
+        self._options.repeatOffsetProbDecay = decay
 
     def mask(self, object sequence):
         # extract sequence (FIXME)
@@ -145,20 +148,21 @@ cdef class Tantan:
 
         cdef unsigned char[::1] seq = sequence
 
-        self.alphabet._abc.encodeInPlace(&seq[0], &seq[seq.shape[0]])
-        maskSequencesSSE4(
-            &seq[0],
-            &seq[seq.shape[0]],
-            self._options.maxCycleLength,
-            <const double**> self.score_matrix.probMatrixPointers,
-            self._options.repeatProb,
-            self._options.repeatEndProb,
-            self._options.repeatOffsetProbDecay,
-            0.0, #firstGapProb,
-            0.0, #otherGapProb,
-            self._options.minMaskProb,
-            self.alphabet._abc.numbersToLowercase,
-        )
+        with nogil:
+            self.alphabet._abc.encodeInPlace(&seq[0], &seq[seq.shape[0]])
+            maskSequencesNone(
+                &seq[0],
+                &seq[seq.shape[0]],
+                self._options.maxCycleLength,
+                <const double**> self.score_matrix.probMatrixPointers,
+                self._options.repeatProb,
+                self._options.repeatEndProb,
+                self._options.repeatOffsetProbDecay,
+                0.0, #firstGapProb,
+                0.0, #otherGapProb,
+                self._options.minMaskProb,
+                self.alphabet._abc.numbersToLowercase,
+            )
+            self.alphabet._abc.decodeInPlace(&seq[0], &seq[seq.shape[0]])
 
-        self.alphabet._abc.decodeInPlace(&seq[0], &seq[seq.shape[0]])
         return sequence.decode()
