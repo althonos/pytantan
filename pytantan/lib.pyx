@@ -2,10 +2,11 @@
 # cython: language_level=3, linetrace=True, binding=True
 
 from libc.math cimport exp
+from libc.limits cimport INT_MAX
 from libc.stdlib cimport calloc, free
 
 from .tantan.options cimport TantanOptions, OutputType
-from .tantan.alphabet cimport Alphabet, DNA
+from .tantan.alphabet cimport Alphabet, DNA, PROTEIN
 from .tantan.score_matrix cimport ScoreMatrix, BLOSUM62
 from .tantan.utils cimport unstringify
 from .tantan.lc cimport LambdaCalculator
@@ -21,20 +22,34 @@ if SSE4_BUILD_SUPPORT:
 
 
 cdef class Tantan:
+    cdef TantanOptions options
+    cdef Alphabet      alphabet
+
+    def __init__(
+        self,
+        *, 
+        bint protein = False,
+    ):
+        # initialize options
+        self.options.isProtein = protein
+        if self.options.maxCycleLength < 0:
+            self.options.maxCycleLength = 50 if protein else 100
+        if self.options.mismatchCost == 0:
+            self.options.mismatchCost = INT_MAX
+
+        # initialize alphabet
+        if self.options.isProtein:
+            self.alphabet.fromString(PROTEIN)
+        else:
+            self.alphabet.fromString(DNA)        
 
     def mask(self, object sequence):
-        # get default options (FIXME)
-        cdef TantanOptions options = TantanOptions()
-
-        # make alphabet (FIXME)
-        cdef Alphabet alphabet = Alphabet()
-        alphabet.fromString(DNA)
-        
         # extract sequence (FIXME)
         if isinstance(sequence, str):
             sequence = bytearray(sequence, 'ascii')
         elif not isinstance(sequence, bytearray):
             sequence = bytearray(sequence)
+        
         cdef unsigned char[::1] seq = sequence
 
         # make scoring matrix
@@ -64,18 +79,18 @@ cdef class Tantan:
         scoring.makeFastMatrix(
             fastMatrixPointers, 
             64, 
-            alphabet.lettersToNumbers, 
+            self.alphabet.lettersToNumbers, 
             scoring.minScore(), 
             False
         )
 
-        for i in range(alphabet.size):
-            for j in range(alphabet.size):
-                print(fastMatrixPointers[i][j], end=" ")
-            print()
+        # for i in range(self.alphabet.size):
+        #     for j in range(self.alphabet.size):
+        #         print(fastMatrixPointers[i][j], end=" ")
+        #     print()
 
         cdef LambdaCalculator lc = LambdaCalculator()
-        lc.calculate(fastMatrixPointers, alphabet.size)
+        lc.calculate(fastMatrixPointers, self.alphabet.size)
         if lc.isBad():
             raise RuntimeError("cannot calculate probabilities for score matrix")
         
@@ -83,11 +98,11 @@ cdef class Tantan:
         for i in range(64):
             for j in range(64):
                 x = matrixLambda * fastMatrixPointers[i][j]
-                if options.outputType != OutputType.repOut:
+                if self.options.outputType != OutputType.repOut:
                     x = exp(x)
                 probMatrixPointers[i][j] = x
 
-        alphabet.encodeInPlace(&seq[0], &seq[seq.shape[0]])
+        self.alphabet.encodeInPlace(&seq[0], &seq[seq.shape[0]])
         maskSequencesSSE4(
             &seq[0],
             &seq[seq.shape[0]],
@@ -99,8 +114,8 @@ cdef class Tantan:
             0.0, #firstGapProb,
             0.0, #otherGapProb,
             0.5,
-            alphabet.numbersToLowercase,
+            self.alphabet.numbersToLowercase,
         )
 
-        alphabet.decodeInPlace(&seq[0], &seq[seq.shape[0]])
+        self.alphabet.decodeInPlace(&seq[0], &seq[seq.shape[0]])
         return sequence.decode()

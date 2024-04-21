@@ -4,6 +4,7 @@ from libcpp.string cimport string
 cdef extern from "mcf_alphabet.hh" namespace "mcf::Alphabet" nogil:
     const unsigned CAPACITY "mcf::Alphabet::capacity"
     const char* DNA "mcf::Alphabet::dna"
+    const char* PROTEIN "mcf::Alphabet::protein"
 
 cdef extern from "mcf_alphabet.hh" namespace "mcf" nogil:
 
