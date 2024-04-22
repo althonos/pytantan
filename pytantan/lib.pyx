@@ -8,6 +8,8 @@ from libc.limits cimport INT_MAX, UCHAR_MAX
 from libc.stdlib cimport calloc, free
 from libcpp.vector cimport vector
 
+from cpython.buffer cimport PyBUF_FORMAT, PyBUF_READ, PyBUF_WRITE
+
 from .tantan cimport SCORE_MATRIX_SIZE
 from .tantan.options cimport TantanOptions, OutputType
 from .tantan.alphabet cimport Alphabet as _Alphabet, DNA, PROTEIN
@@ -37,6 +39,32 @@ import itertools
 
 # --- Runtime CPU detection ----------------------------------------------------
 
+try:
+    import archspec.cpu
+    _HOST_CPU             = archspec.cpu.host()
+    _HOST_FEATURES        = _HOST_CPU.features
+except ImportError:
+    _HOST_CPU             = None
+    _HOST_FEATURES        = set()
+
+_SSE2_BUILD_SUPPORT   = SSE2_BUILD_SUPPORT
+_SSE4_BUILD_SUPPORT   = SSE4_BUILD_SUPPORT
+_AVX2_BUILD_SUPPORT   = AVX2_BUILD_SUPPORT
+_NEON_BUILD_SUPPORT   = NEON_BUILD_SUPPORT
+_SSE2_RUNTIME_SUPPORT = SSE2_BUILD_SUPPORT and "sse2" in _HOST_FEATURES
+_SSE4_RUNTIME_SUPPORT = SSE4_BUILD_SUPPORT and "sse4_1" in _HOST_FEATURES
+_AVX2_RUNTIME_SUPPORT = AVX2_BUILD_SUPPORT and "avx2" in _HOST_FEATURES
+_NEON_RUNTIME_SUPPORT = NEON_BUILD_SUPPORT and "neon" in _HOST_FEATURES
+
+# NOTE(@althonos): NEON is always supported on Aarch64 so we should only check
+#                  that the extension was built with NEON support.
+if TARGET_CPU == "aarch64":
+    _NEON_RUNTIME_SUPPORT = NEON_BUILD_SUPPORT
+
+# NOTE(@althonos): SSE2 is always supported on x86-64 so we should only check
+#                  that the extension was built with SSE2 support.
+if TARGET_CPU == "x86_64":
+    _SSE2_RUNTIME_SUPPORT = SSE2_BUILD_SUPPORT
 
 # --- Parameters ---------------------------------------------------------------
 
@@ -167,32 +195,33 @@ cdef class Alphabet:
 
 
 cdef class ScoreMatrix:
-    cdef readonly Alphabet     alphabet
+    cdef readonly Alphabet alphabet
+    cdef Py_ssize_t        _shape[2]
 
-    cdef double*  probMatrix
     cdef double** probMatrixPointers
-    cdef int*     fastMatrix
     cdef int**    fastMatrixPointers
 
     cdef int _allocate_matrix(self) except 1:
+        cdef size_t i
+
         # allocate data and pointer arrays
-        self.probMatrix = <double*> calloc(sizeof(double), 64*64)
-        if self.probMatrix is NULL:
-            raise MemoryError
         self.probMatrixPointers = <double**> calloc(sizeof(double*), 64)
         if self.probMatrixPointers is NULL:
             raise MemoryError
-        self.fastMatrix = <int*> calloc(sizeof(int), 64*64)
-        if self.fastMatrix is NULL:
+        self.probMatrixPointers[0] = <double*> calloc(sizeof(double), 64*64)
+        if self.probMatrixPointers[0] is NULL:
             raise MemoryError
         self.fastMatrixPointers = <int**> calloc(sizeof(int*), 64)
         if self.fastMatrixPointers is NULL:
             raise MemoryError
+        self.fastMatrixPointers[0] = <int*> calloc(sizeof(int), 64*64)
+        if self.fastMatrixPointers[0] is NULL:
+            raise MemoryError
+
         # prepare pointers to data
         for i in range(64):
-            self.fastMatrixPointers[i] = &self.fastMatrix[i * 64]
-            self.probMatrixPointers[i] = &self.probMatrix[i * 64]
-        return 0
+            self.fastMatrixPointers[i] = &self.fastMatrixPointers[0][i * 64]
+            self.probMatrixPointers[i] = &self.probMatrixPointers[0][i * 64]
 
     cdef int _make_fast_matrix(self, vector[vector[int]]& scores) except 1:
         cdef size_t i
@@ -212,9 +241,8 @@ cdef class ScoreMatrix:
                     default = scores[i][j]
 
         # fill matrix with default score (FIXME)
-        for i in range(SCORE_MATRIX_SIZE):
-            for j in range(SCORE_MATRIX_SIZE):
-                self.fastMatrixPointers[i][j] = default
+        for i in range(SCORE_MATRIX_SIZE*SCORE_MATRIX_SIZE):
+            self.fastMatrixPointers[0][i] = default
 
         # update matrix with scores
         for i in range(self.alphabet._abc.size):
@@ -232,13 +260,28 @@ cdef class ScoreMatrix:
                 self.fastMatrixPointers[b][c] = scores[i][j]
                 self.fastMatrixPointers[b][d] = scores[i][j]
 
+    cdef int _make_likelihood_matrix(self):
+        cdef size_t           i
+        cdef LambdaCalculator lc = LambdaCalculator()
+
+        # compute lambda factor
+        lc.calculate(self.fastMatrixPointers, self.alphabet._abc.size)
+        if lc.isBad():
+            raise RuntimeError("cannot calculate probabilities for score matrix")
+
+        # compute likelihood matrix
+        lambda_ = lc.lambda_()
+        for i in range(SCORE_MATRIX_SIZE*SCORE_MATRIX_SIZE):
+            x = lambda_ * self.fastMatrixPointers[0][i]
+            self.probMatrixPointers[0][i] = exp(x)
+
     def __init__(self, Alphabet alphabet not None, object matrix not None):
         cdef double              lambda_
         cdef vector[vector[int]] scores  = vector[vector[int]]()
-        cdef LambdaCalculator    lc      = LambdaCalculator()
 
         # record alphabet
         self.alphabet = alphabet
+        self._shape[0] = self._shape[1] = self.alphabet._abc.size
 
         # extract scores
         if len(matrix) != self.alphabet._abc.size:
@@ -254,18 +297,56 @@ cdef class ScoreMatrix:
         # prepare fast matrix
         self._allocate_matrix()
         self._make_fast_matrix(scores)
+        self._make_likelihood_matrix()
 
-        # compute lambda factor
-        lc.calculate(self.fastMatrixPointers, self.alphabet._abc.size)
-        if lc.isBad():
-            raise RuntimeError("cannot calculate probabilities for score matrix")
+    def __dealloc__(self):
+        if self.probMatrixPointers is not NULL:
+            free(self.probMatrixPointers[0])
+        free(self.probMatrixPointers)
+        if self.fastMatrixPointers is not NULL:
+            free(self.fastMatrixPointers[0])
+        free(self.fastMatrixPointers)
 
-        # compute likelihood matrix
-        lambda_ = lc.lambda_()
-        for i in range(64):
-            for j in range(64):
-                x = lambda_ * self.fastMatrixPointers[i][j]
-                self.probMatrixPointers[i][j] = exp(x)
+    def __eq__(self, object other):
+        if not isinstance(other, ScoreMatrix):
+            return NotImplemented
+        return self.alphabet == other.alphabet and self.matrix == other.matrix
+
+    def __repr__(self):
+        cdef str ty = type(self).__name__
+        return f"{ty}({self.alphabet!r}, {self.matrix!r})"
+
+    def __reduce__(self):
+        return (type(self), (self.alphabet, self.matrix))
+
+    def __getbuffer__(self, Py_buffer* buffer, int flags):
+        if flags & PyBUF_FORMAT:
+            buffer.format = b"i"
+        else:
+            buffer.format = NULL
+        buffer.buf = self.fastMatrixPointers[0]
+        buffer.internal = NULL
+        buffer.itemsize = sizeof(int)
+        buffer.len = self._shape[0] * self._shape[1] * sizeof(int)
+        buffer.ndim = 2
+        buffer.obj = self
+        buffer.readonly = 1
+        buffer.shape = <Py_ssize_t*> &self._shape
+        buffer.suboffsets = NULL
+        buffer.strides = NULL
+
+    @property
+    def matrix(self):
+        """`list` of `list` of `int`: The score matrix.
+        """
+        cdef int        i
+        cdef int        j
+        cdef int        length = self.alphabet._abc.size
+
+        return [
+            [ self.fastMatrixPointers[i][j] for j in range(length) ]
+            for i in range(length)
+        ]
 
 
 # --- RepeatFinder -------------------------------------------------------------
