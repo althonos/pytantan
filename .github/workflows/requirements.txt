@@ -1,0 +1,7 @@
+coverage ~=6.0
+cython ~=3.0
+wheel
+auditwheel
+setuptools >=46.4.0
+importlib-resources ; python_version < '3.7'
+archspec ~=0.2      ; os_name != 'nt'
