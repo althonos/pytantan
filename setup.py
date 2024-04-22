@@ -672,7 +672,11 @@ setuptools.setup(
         Extension(
             "pytantan.lib",
             language="c++",
-            include_dirs=["pytantan", os.path.join("vendor", "tantan", "src")],
+            include_dirs=[
+                "pytantan",
+                os.path.join("pytantan", "tantan"),
+                os.path.join("vendor", "tantan", "src")
+            ],
             sources=[
                 os.path.join("vendor", "tantan", "src", "cbrc_linalg.cc"),
                 os.path.join("vendor", "tantan", "src", "LambdaCalculator.cc"),
