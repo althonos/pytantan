@@ -3,13 +3,14 @@
 
 # --- C imports ----------------------------------------------------------------
 
+cimport cython
+from cpython.buffer cimport PyBUF_FORMAT, PyBUF_READ, PyBUF_WRITE
+
 from libc.math cimport exp
 from libc.limits cimport INT_MAX, UCHAR_MAX
 from libc.stdlib cimport calloc, free
 from libc.string cimport memcmp
 from libcpp.vector cimport vector
-
-from cpython.buffer cimport PyBUF_FORMAT, PyBUF_READ, PyBUF_WRITE
 
 from .tantan cimport SCORE_MATRIX_SIZE
 from .tantan.options cimport TantanOptions, OutputType
@@ -525,6 +526,7 @@ cdef class RepeatFinder:
         self._options.repeatEndProb = repeat_end
         self._options.repeatOffsetProbDecay = decay
 
+    @cython.boundscheck(False)
     cpdef object get_probabilities(self, object sequence):
         """Get the probabilities of being a repeat for each sequence position.
 
@@ -565,6 +567,7 @@ cdef class RepeatFinder:
             )
         return probas
 
+    @cython.boundscheck(False)
     cpdef str mask_repeats(
         self,
         object sequence,
