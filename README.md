@@ -88,8 +88,8 @@ tantan = pytantan.RepeatFinder(matrix)
 
 The repeat finder can then be used to mask repeats inside sequences.
 ```
-masked = tantan.mask("TGCAAGCTATTAGGCTTAGGTCAGTGCTTAGGCTTAGGTCAGTGCAACATA")
-print(masked)       # TGCAAGCTATTAGGCTTAGGTCAGTGCttaagcttaggtcagtgcAACATA
+masked = tantan.mask_repeats("TGCAAGCTATTAGGCTTAGGTCAGTGCTTAGGCTTAGGTCAGTGCAACATA")
+print(masked)               # TGCAAGCTATTAGGCTTAGGTCAGTGCttaagcttaggtcagtgcAACATA
 ```
 
 <!-- The top-level function `pytantan.mask` can be used to mask a sequence
