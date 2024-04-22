@@ -116,6 +116,11 @@ class sdist(_sdist):
     """A `sdist` that generates a `pyproject.toml` on the fly."""
 
     def run(self):
+        # generate score matrices
+        if not self.distribution.have_run.get("build_matrices", False):
+            _build_cmd = self.get_finalized_command("build_matrices")
+            _build_cmd.force = self.force
+            _build_cmd.run()
         # build `pyproject.toml` from `setup.cfg`
         c = configparser.ConfigParser()
         c.add_section("build-system")
