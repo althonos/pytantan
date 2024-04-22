@@ -1,5 +1,6 @@
 import configparser
 import functools
+import ftplib
 import glob
 import itertools
 import io
@@ -46,6 +47,12 @@ _HEADER_PATTERN = re.compile("^@@ -(\d+),?(\d+)? \+(\d+),?(\d+)? @@$")
 
 def _eprint(*args, **kwargs):
     print(*args, **kwargs, file=sys.stderr)
+
+
+def _split_multiline(value):
+    value = value.strip()
+    sep = max('\n,;', key=value.count)
+    return list(filter(None, map(lambda x: x.strip(), value.split(sep))))
 
 
 def _patch_osx_compiler(compiler):
@@ -118,6 +125,59 @@ class sdist(_sdist):
             c.write(pyproject)
         # run the rest of the packaging
         _sdist.run(self)
+
+
+class build_matrices(setuptools.Command):
+
+    user_options = [
+        ('force', 'f', 'force generation of files'),
+        ('matrices', 'm', 'matrices to download'),
+    ]
+
+    def initialize_options(self) -> None:
+        self.force = False
+        self.folder = None
+        self.output = None
+        self.matrices = None
+
+    def finalize_options(self) -> None:
+        self.folder = "data"
+        self.output = os.path.join("pytantan", "matrices.pxi")
+        if self.matrices is not None:
+            self.matrices = _split_multiline(self.matrices)
+
+    def run(self):
+        if not os.path.exists(self.output) or self.force:
+            with ftplib.FTP("ftp.ncbi.nih.gov") as ncbi:
+                ncbi.login()
+                ncbi.cwd('blast/matrices')
+                matrix_files = {}
+                for matrix in self.matrices:
+                    _eprint(f"downloading {matrix} from ftp://ftp.ncbi.nih.gov/blast/matrices/{matrix}")
+                    buffer = io.BytesIO()
+                    ncbi.retrbinary(f"RETR {matrix}", buffer.write)
+                    buffer.seek(0)
+                    matrix_files[matrix] = io.TextIOWrapper(buffer)
+            self._generate_matrices(matrix_files, self.output)
+
+    def _parse_matrix_file(self, matrix_file):
+        lines = filter(
+            lambda line: line and not line.startswith("#"),
+            map(str.strip, matrix_file),
+        )
+        letters = ''.join(next(lines).split())
+        matrix = [
+            list(map(int, line.strip().split()[1:]))
+            for line in lines
+        ]
+        return letters, matrix
+
+    def _generate_matrices(self, matrix_files, output_file):
+        matrices = {}
+        for matrix_name, matrix_file in matrix_files.items():
+            matrices[matrix_name] = self._parse_matrix_file(matrix_file)
+        with open(output_file, "w") as dst:
+            dst.write("cdef dict _SCORE_MATRICES = {}".format(json.dumps(matrices, indent=4)))
 
 
 class build_ext(_build_ext):
@@ -399,6 +459,12 @@ class build_ext(_build_ext):
         if platform.system() == "Darwin":
             _patch_osx_compiler(self.compiler)
 
+        # generate score matrices
+        if not self.distribution.have_run.get("build_matrices", False):
+            _build_cmd = self.get_finalized_command("build_matrices")
+            _build_cmd.force = self.force
+            _build_cmd.run()
+
         # generate files from templates:
         for i, ext in enumerate(self.extensions):
             if isinstance(ext, ExtensionTemplate):
@@ -615,6 +681,7 @@ setuptools.setup(
     cmdclass={
         "sdist": sdist,
         "build_ext": build_ext,
+        "build_matrices": build_matrices,
         "clean": clean,
     },
 )

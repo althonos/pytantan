@@ -38,6 +38,8 @@ cdef extern from "<cctype>" namespace "std" nogil:
 import array
 import itertools
 
+include "matrices.pxi"
+
 # --- Runtime CPU detection ----------------------------------------------------
 
 try:
