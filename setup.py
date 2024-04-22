@@ -609,21 +609,21 @@ setuptools.setup(
                 os.path.join("pytantan", "platform", "generic.pyx"),
             ],
         ),
-        # ExtensionTemplate(
-        #     "pytantan.platform.neon",
-        #     language="c++",
-        #     simd="NEON",
-        #     define_macros=[("__ARM_NEON", 1)],
-        #     include_dirs=["pytantan"],
-        #     templates={
-        #         os.path.join("pytantan", "platform", "neon.pxd"): os.path.join("pytantan", "platform", "pxd.in"),
-        #         os.path.join("pytantan", "platform", "neon.pyx"): os.path.join("pytantan", "platform", "pyx.in"),
-        #     },
-        #     sources=[
-        #         os.path.join("vendor", "tantan", "src", "tantan.cc"),
-        #         os.path.join("pytantan", "platform", "neon.pyx"),
-        #     ],
-        # ),
+        ExtensionTemplate(
+            "pytantan.platform.neon",
+            language="c++",
+            simd="NEON",
+            define_macros=[("__ARM_NEON", 1)],
+            include_dirs=["pytantan"],
+            templates={
+                os.path.join("pytantan", "platform", "neon.pxd"): os.path.join("pytantan", "platform", "pxd.in"),
+                os.path.join("pytantan", "platform", "neon.pyx"): os.path.join("pytantan", "platform", "pyx.in"),
+            },
+            sources=[
+                os.path.join("vendor", "tantan", "src", "tantan.cc"),
+                os.path.join("pytantan", "platform", "neon.pyx"),
+            ],
+        ),
         # ExtensionTemplate(
         #     "pytantan.platform.sse2",
         #     language="c++",
@@ -654,21 +654,21 @@ setuptools.setup(
                 os.path.join("pytantan", "platform", "sse4.pyx"),
             ],
         ),
-        # ExtensionTemplate(
-        #     "pytantan.platform.avx2",
-        #     language="c++",
-        #     simd="AVX2",
-        #     include_dirs=["pytantan", os.path.join("vendor", "tantan", "src")],
-        #     define_macros=[("__AVX2__", 1)],
-        #     templates={
-        #         os.path.join("pytantan", "platform", "avx2.pxd"): os.path.join("pytantan", "platform", "pxd.in"),
-        #         os.path.join("pytantan", "platform", "avx2.pyx"): os.path.join("pytantan", "platform", "pyx.in"),
-        #     },
-        #     sources=[
-        #         os.path.join("vendor", "tantan", "src", "tantan.cc"),
-        #         os.path.join("pytantan", "platform", "avx2.pyx"),
-        #     ],
-        # ),
+        ExtensionTemplate(
+            "pytantan.platform.avx2",
+            language="c++",
+            simd="AVX2",
+            include_dirs=["pytantan", os.path.join("vendor", "tantan", "src")],
+            define_macros=[("__AVX2__", 1)],
+            templates={
+                os.path.join("pytantan", "platform", "avx2.pxd"): os.path.join("pytantan", "platform", "pxd.in"),
+                os.path.join("pytantan", "platform", "avx2.pyx"): os.path.join("pytantan", "platform", "pyx.in"),
+            },
+            sources=[
+                os.path.join("vendor", "tantan", "src", "tantan.cc"),
+                os.path.join("pytantan", "platform", "avx2.pyx"),
+            ],
+        ),
         Extension(
             "pytantan.lib",
             language="c++",

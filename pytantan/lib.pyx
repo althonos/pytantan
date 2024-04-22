@@ -19,15 +19,16 @@ from .tantan.score_matrix cimport ScoreMatrix as _ScoreMatrix, BLOSUM62
 from .tantan.utils cimport unstringify
 from .tantan.lc cimport LambdaCalculator
 
-from pytantan.platform.generic cimport maskSequencesNone, getProbabilitiesNone
-# if NEON_BUILD_SUPPORT:
-#     from pytantan.platform.neon cimport maskSequencesNEON
+from .platform cimport _mask_fn_t, _probas_fn_t
+from .platform.generic cimport maskSequencesNone, getProbabilitiesNone
+if NEON_BUILD_SUPPORT:
+    from .platform.neon cimport maskSequencesNEON, getProbabilitiesNEON
 # if SSE2_BUILD_SUPPORT:
-    # from .platform.sse2 cimport maskSequencesSSE2
-# if SSE4_BUILD_SUPPORT:
-#     from pytantan.platform.sse4 cimport maskSequencesSSE4
-# if AVX2_BUILD_SUPPORT:
-#     from pytantan.platform.avx2 cimport maskSequencesAVX2
+#     from .platform.sse2 cimport maskSequencesSSE2, getProbabilitiesSSE2
+if SSE4_BUILD_SUPPORT:
+    from .platform.sse4 cimport maskSequencesSSE4, getProbabilitiesSSE4
+if AVX2_BUILD_SUPPORT:
+    from .platform.avx2 cimport maskSequencesAVX2, getProbabilitiesAVX2
 
 cdef extern from "<cctype>" namespace "std" nogil:
     cdef bint isalpha(int ch)
@@ -490,8 +491,15 @@ cdef class ScoreMatrix:
 
 cdef class RepeatFinder:
     cdef          TantanOptions _options
+    cdef          _mask_fn_t    _mask_sequences
+    cdef          _probas_fn_t  _get_probabilities
+
     cdef readonly Alphabet      alphabet
     cdef readonly ScoreMatrix   score_matrix
+
+    def __cinit__(self):
+        self._mask_sequences = NULL
+        self._get_probabilities = NULL
 
     def __init__(
         self,
@@ -525,6 +533,23 @@ cdef class RepeatFinder:
         self._options.repeatProb = repeat_start
         self._options.repeatEndProb = repeat_end
         self._options.repeatOffsetProbDecay = decay
+        # Select the best available SIMD backend
+        # if SSE2_BUILD_SUPPORT and _SSE2_RUNTIME_SUPPORT:
+        #     self._get_probabilities = getProbabilitiesSSE2
+        #     self._mask_sequences = maskSequencesSSE2
+        if SSE4_BUILD_SUPPORT and _SSE4_RUNTIME_SUPPORT:
+            self._get_probabilities = getProbabilitiesSSE4
+            self._mask_sequences = maskSequencesSSE4
+        if AVX2_BUILD_SUPPORT and _AVX2_RUNTIME_SUPPORT:
+            self._get_probabilities = getProbabilitiesAVX2
+            self._mask_sequences = maskSequencesAVX2
+        if NEON_BUILD_SUPPORT and _NEON_RUNTIME_SUPPORT:
+            self._get_probabilities = getProbabilitiesNEON
+            self._mask_sequences = maskSequencesNEON
+        if self._get_probabilities is NULL:
+            self._get_probabilities = getProbabilitiesNone
+        if self._mask_sequences is NULL:
+            self._mask_sequences = maskSequencesNone
 
     @cython.boundscheck(False)
     cpdef object get_probabilities(self, object sequence):
