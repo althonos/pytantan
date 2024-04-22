@@ -136,12 +136,12 @@ class build_matrices(setuptools.Command):
 
     user_options = [
         ('force', 'f', 'force generation of files'),
-        ('matrices', 'm', 'matrices to download'),
+        ('output=', 'o', 'output file to write'),
+        ('matrices=', 'm', 'matrices to generate'),
     ]
 
     def initialize_options(self) -> None:
         self.force = False
-        self.folder = None
         self.output = None
         self.matrices = None
 
@@ -150,37 +150,33 @@ class build_matrices(setuptools.Command):
         self.output = os.path.join("pytantan", "matrices.pxi")
         if self.matrices is not None:
             self.matrices = _split_multiline(self.matrices)
+        else:
+            self.matrices = []
 
     def run(self):
-        if not os.path.exists(self.output) or self.force:
-            with ftplib.FTP("ftp.ncbi.nih.gov") as ncbi:
-                ncbi.login()
-                ncbi.cwd('blast/matrices')
-                matrix_files = {}
-                for matrix in self.matrices:
-                    _eprint(f"downloading {matrix} from ftp://ftp.ncbi.nih.gov/blast/matrices/{matrix}")
-                    buffer = io.BytesIO()
-                    ncbi.retrbinary(f"RETR {matrix}", buffer.write)
-                    buffer.seek(0)
-                    matrix_files[matrix] = io.TextIOWrapper(buffer)
-            self._generate_matrices(matrix_files, self.output)
+        matrix_files = [ os.path.join(self.folder, f"{matrix}.mat") for matrix in self.matrices ]
+        self.make_file(matrix_files, self.output, self._generate_matrices, (matrix_files, self.output))
 
     def _parse_matrix_file(self, matrix_file):
-        lines = filter(
-            lambda line: line and not line.startswith("#"),
-            map(str.strip, matrix_file),
-        )
-        letters = ''.join(next(lines).split())
-        matrix = [
-            list(map(int, line.strip().split()[1:]))
-            for line in lines
-        ]
+        with open(matrix_file) as f:
+            lines = filter(
+                lambda line: line and not line.startswith("#"),
+                map(str.strip, f),
+            )
+            letters = ''.join(next(lines).split())
+            matrix = [
+                list(map(int, line.strip().split()[1:]))
+                for line in map(str.strip, lines)
+                if line
+            ]
         return letters, matrix
 
     def _generate_matrices(self, matrix_files, output_file):
         matrices = {}
-        for matrix_name, matrix_file in matrix_files.items():
+        for matrix_file in matrix_files:
+            matrix_name = os.path.splitext(os.path.basename(matrix_file))[0].upper()
             matrices[matrix_name] = self._parse_matrix_file(matrix_file)
+
         with open(output_file, "w") as dst:
             dst.write("cdef dict _SCORE_MATRICES = {}".format(json.dumps(matrices, indent=4)))
 
