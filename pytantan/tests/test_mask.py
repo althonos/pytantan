@@ -29,54 +29,21 @@ TITIN_H16 = inline(
     """
 )
 
-class TestRepeatFinder(unittest.TestCase):
+class TestMask(unittest.TestCase):
 
     def test_hard(self):
-        matrix = pytantan.ScoreMatrix.match_mismatch()
-        
-        tantan = pytantan.RepeatFinder(matrix)
         self.assertEqual(
-            tantan.mask_repeats("CATCATCATCATCATATCATATCATATCATATCATATCAT"),
+            pytantan.mask_repeats("CATCATCATCATCATATCATATCATATCATATCATATCAT"),
             "CATcatcatcatcaTAtcatatcatatcatatcatatcat",
         )
-
-        tantan = pytantan.RepeatFinder(matrix, repeat_start=0.5)
         self.assertEqual(
-            tantan.mask_repeats("CATCATCATCATCATATCATATCATATCATATCATATCAT"),
+            pytantan.mask_repeats("CATCATCATCATCATATCATATCATATCATATCATATCAT", repeat_start=0.5),
             "CATcatcatcatcatatcatatcatatcatatcatatcat",
         )
 
     def titin_h16(self):
-        matrix = pytantan.ScoreMatrix.protein()
-
-        tantan = pytantan.RepeatFinder(matrix)
         self.assertEqual(
-            tantan.mask_repeats(TITIN_H16, mask="x"),
-            inline(
-                """
-                MTTQAPTFTQPLQSVVVLEGSTATFEAHISGFPVPEVSWFRDGQVISTST
-                LPGVQISFSDGRAKLTIPAVTKANSGRYSLKATNGSGQATSTAELLVKAE
-                TAPPNFVQRLQSMTVRQGSQVRLQVRVTGIPTPVVKFYRDGAEIQSSLDF
-                QISQEGDLYSLLIAEAYPEDSGTYSVNATNSVGRATSTAELLVQGEEEVP
-                AKKTKTIVSTAQISESRQTRIEKKIEAHFDARSIATVEMVIDGAAGQQLP
-                HKTPHRIPPKPKSRSxxxPSIAAKAQLARQQSPSPIxxxxxxxxxxxxxx
-                PSPVRSVSPAAxxxxxxxxxxxxxxLMRKTQASTVATGPEVPPPWKQEGY
-                VASSSEAEMRETTLTTSTQIRTEERWEGRYGVQExxxxxxxxxxxxxxxx
-                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxDMARVREPVISAVEQTA
-                QRTTTTAVHIQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxISEEITxxxxxx
-                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxVPGAQEETTTQQxxxxxxxxx
-                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-                xxxxxxxxxxxxxxxxPREPGHLEESYAQQTTLEYGYKERISAAKVAEPP
-                QRPASEPHVVPKAVKPRVIQAPSETHIKTTDQKGMHISSQIKKTTDLTTE
-                """
-            )
-        )
-
-        tantan = pytantan.RepeatFinder(matrix)
-        self.assertEqual(
-            tantan.mask_repeats(TITIN_H16, mask="x"),
+            pytantan.mask_repeats(TITIN_H16, mask="x", protein=True),
             inline(
                 """
                 MTTQAPTFTQPLQSVVVLEGSTATFEAHISGFPVPEVSWFRDGQVISTST
@@ -99,7 +66,30 @@ class TestRepeatFinder(unittest.TestCase):
             )
         )
         self.assertEqual(
-            tantan.mask_repeats(TITIN_H16, mask="X", threshold=0.9),
+            pytantan.mask_repeats(TITIN_H16, mask="x", protein=True),
+            inline(
+                """
+                MTTQAPTFTQPLQSVVVLEGSTATFEAHISGFPVPEVSWFRDGQVISTST
+                LPGVQISFSDGRAKLTIPAVTKANSGRYSLKATNGSGQATSTAELLVKAE
+                TAPPNFVQRLQSMTVRQGSQVRLQVRVTGIPTPVVKFYRDGAEIQSSLDF
+                QISQEGDLYSLLIAEAYPEDSGTYSVNATNSVGRATSTAELLVQGEEEVP
+                AKKTKTIVSTAQISESRQTRIEKKIEAHFDARSIATVEMVIDGAAGQQLP
+                HKTPHRIPPKPKSRSxxxPSIAAKAQLARQQSPSPIxxxxxxxxxxxxxx
+                PSPVRSVSPAAxxxxxxxxxxxxxxLMRKTQASTVATGPEVPPPWKQEGY
+                VASSSEAEMRETTLTTSTQIRTEERWEGRYGVQExxxxxxxxxxxxxxxx
+                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxDMARVREPVISAVEQTA
+                QRTTTTAVHIQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxISEEITxxxxxx
+                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxVPGAQEETTTQQxxxxxxxxx
+                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                xxxxxxxxxxxxxxxxPREPGHLEESYAQQTTLEYGYKERISAAKVAEPP
+                QRPASEPHVVPKAVKPRVIQAPSETHIKTTDQKGMHISSQIKKTTDLTTE
+                """
+            )
+        )
+        self.assertEqual(
+            pytantan.mask_repeats(TITIN_H16, mask="X", threshold=0.9, protein=True),
             inline(
                 """
                 MTTQAPTFTQPLQSVVVLEGSTATFEAHISGFPVPEVSWFRDGQVISTST

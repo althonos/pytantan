@@ -16,8 +16,5 @@ __all__ = [
 ]
 
 from . import lib
-from .lib import (
-    Alphabet,
-    ScoreMatrix,
-    RepeatFinder,
-)
+from ._mask import mask_repeats
+from .lib import Alphabet, ScoreMatrix, RepeatFinder

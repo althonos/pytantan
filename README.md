@@ -69,31 +69,26 @@ of the documentation for other ways to install PyTantan on your machine. -->
 
 ## 💡 Example
 
-All classes are imported in the main namespace `pytantan`:
+The top-level function `pytantan.mask_repeats` can be used to mask a sequence
+without having to manage intermediate objects:
+
 ```python
 import pytantan
+masked = pytantan.mask_repeats("ATTATTATTATTATT")
+print(masked)                 # ATTattattattatt
 ```
 
-Tantan needs a scoring matrix to score matches and mismatches between
-sequence characters. Use the `ScoreMatrix` object to load a default one:
+The mask symbol (and other parameters) can be given as keyword arguments:
+
 ```python
-matrix = pytantan.ScoreMatrix.dna()
+import pytantan
+masked = pytantan.mask_repeats("ATTATTATTATTATT", mask='N')
+print(masked)                 # ATTNNNNNNNNNNNN
 ```
 
-A `RepeatFinder` can be created from a score matrix, and from additional
-arguments to control the `tantan` parameters:
-```python
-tantan = pytantan.RepeatFinder(matrix)
-```
-
-The repeat finder can then be used to mask repeats inside sequences.
-```
-masked = tantan.mask_repeats("TGCAAGCTATTAGGCTTAGGTCAGTGCTTAGGCTTAGGTCAGTGCAACATA")
-print(masked)               # TGCAAGCTATTAGGCTTAGGTCAGTGCttaagcttaggtcagtgcAACATA
-```
-
-<!-- The top-level function `pytantan.mask` can be used to mask a sequence
-without having to manage intermediate objects. -->
+To mask several sequences iteratively with the same parameters, consider 
+creating a `RepeatFinder` once and calling the `mask_repeats` method for 
+each sequence to avoid resource re-initialization.
 
 <!-- See the [API documentation](https://pytantan.readthedocs.io/en/stable/api/index.html) 
 for more examples, including how to use the internal API, and detailed 

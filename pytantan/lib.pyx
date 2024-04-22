@@ -220,19 +220,20 @@ cdef class ScoreMatrix:
     cdef int**    fastMatrixPointers
 
     @classmethod
-    def dna(
+    def match_mismatch(
         cls,
+        Alphabet alphabet = Alphabet.dna(),
         *,
         int match_score = 1,
         int mismatch_cost = 1
     ):
-        """Create a match/mismatch score matrix for DNA sequences.
+        """Create a match/mismatch score matrix for tje given alphabet.
 
         Arguments:
-            match_score (`int`): The score to use for matching DNA
+            match_score (`int`): The score to use for matching sequence
                 characters.
-            mismatch_cost (`int`): The cost to use for mismatching DNA
-                characters.
+            mismatch_cost (`int`): The cost to use for mismatching 
+                sequence characters.
 
         Returns:
             `~pytantan.ScoreMatrix`: A score matrix with ``match_score``
@@ -240,7 +241,6 @@ cdef class ScoreMatrix:
 
         """
         cdef ssize_t  i
-        cdef Alphabet alphabet = Alphabet.dna()
         cdef ssize_t  size     = alphabet._abc.size
         cdef list     matrix   = [[-mismatch_cost]*size for i in range(size)]
 
@@ -599,23 +599,22 @@ cdef class RepeatFinder:
         double threshold = 0.5,
         object mask = None,
     ):
-        """Get the probabilities of being a repeat for each sequence position.
+        """Mask regions predicted as repeats in the given sequence.
 
         Arguments:
             sequence (`str` or byte-like object): The sequence containing
                 the repeats to mask.
             threshold (`float`): The probability threshold above which to
                 mask sequence characters.
-            mask (`str` or `None`): A mask character to use for masking
-                positions. If `None` given, the masking uses lowercase
-                letters of the original sequence character.
+            mask (`str` or `None`): A single mask character to use for 
+                masking positions. If `None` given, masking uses the
+                lowercase letters of the original sequence.
 
         Returns:
-            `~array.array`: A float array containing the repeat probability
-            per sequence position.
+            `str`: The input sequence with repeat regions masked.
 
         Example:
-            >>> matrix = ScoreMatrix.dna()
+            >>> matrix = ScoreMatrix.match_mismatch()
             >>> tantan = RepeatFinder(matrix)
             >>> tantan.mask_repeats("ATTATTATTATTATT")
             'ATTattattattatt'
