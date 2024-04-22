@@ -160,6 +160,9 @@ cdef class Alphabet:
         Arguments:
             sequence (`str` or byte-like object): The sequence to encode.
 
+        Returns:
+            `bytes`: The encoded sequence.
+
         Raises:
             `ValueError`: When the sequence contains invalid characters, or
             unknown sequence characters while the alphabet contains no
@@ -182,6 +185,9 @@ cdef class Alphabet:
 
         Arguments:
             sequence (byte-like object): The sequence to decode.
+
+        Returns:
+            `str`: The decoded sequence.
 
         Raises:
             `ValueError`: When the sequence contains invalid indices.
@@ -326,6 +332,33 @@ cdef class ScoreMatrix:
             self.probMatrixPointers[0][i] = exp(x)
 
     def __init__(self, Alphabet alphabet not None, object matrix not None):
+        """Create a new score matrix from the given alphabet and scores.
+
+        Arguments:
+            alphabet (`str` or `~pytantan.Alphabet`): The alphabet of the
+                similarity matrix.
+            matrix (`~numpy.typing.ArrayLike` of `int`): The scoring matrix,
+                as a square matrix indexed by the alphabet characters.
+
+        Example:
+            Create a new similarity matrix using the HOXD70 scores by
+            Chiaromonte, Yap and Miller (:pmid:`11928468`)::
+
+                >>> matrix = ScoreMatrix(
+                ...     Alphabet.dna(),
+                ...     [[  91, -114,  -31, -123],
+                ...      [-114,  100, -125,  -31],
+                ...      [ -31, -125,  100, -114],
+                ...      [-123,  -31, -114,   91]]
+                ... )
+
+            Create a new similarity matrix using one of the matrices from
+            the `Bio.Align.substitution_matrices` module::
+
+                >>> jones = Bio.Align.substitution_matrices.load('JONES')
+                >>> matrix = ScoreMatrix(jones.alphabet, jones)
+
+        """
         cdef double              lambda_
         cdef vector[vector[int]] scores  = vector[vector[int]]()
 
@@ -426,6 +459,18 @@ cdef class RepeatFinder:
         double repeat_end = 0.05,
         double decay = 0.9,
     ):
+        """Create a new repeat finder.
+
+        Arguments:
+            score_matrix (`~pytantan.ScoreMatrix`): The score matrix to use
+                for scoring sequence alignments.
+            repeat_start (`float`): The probability of a repeat starting 
+                per position.
+            repeat_end (`float`): The probability of a repeat ending per
+                position.
+            decay (`float`): The probability decay per period.
+
+        """
         # store score matrix and alphabet
         self.score_matrix = score_matrix
         self.alphabet = score_matrix.alphabet
@@ -440,6 +485,17 @@ cdef class RepeatFinder:
         self._options.repeatOffsetProbDecay = decay
 
     cpdef object get_probabilities(self, object sequence):
+        """Get the probabilities of being a repeat for each sequence position.
+
+        Arguments:
+            sequence (`str` or byte-like object): The sequence to compute
+                probabilities for.
+
+        Returns:
+            `~array.array`: A float array containing the repeat probability
+            per sequence position.
+
+        """
         cdef unsigned char[::1] seq
         # extract sequence (FIXME)
         if isinstance(sequence, str):
@@ -474,6 +530,30 @@ cdef class RepeatFinder:
         double threshold = 0.5,
         object mask = None,
     ):
+        """Get the probabilities of being a repeat for each sequence position.
+
+        Arguments:
+            sequence (`str` or byte-like object): The sequence containing
+                the repeats to mask.
+            threshold (`float`): The probability threshold above which to
+                mask sequence characters.
+            mask (`str` or `None`): A mask character to use for masking
+                positions. If `None` given, the masking uses lowercase 
+                letters of the original sequence character.
+
+        Returns:
+            `~array.array`: A float array containing the repeat probability
+            per sequence position.
+
+        Example:
+            >>> matrix = ScoreMatrix.dna()
+            >>> tantan = RepeatFinder(matrix)
+            >>> tantan.mask_repeats("ATTATTATTATTATT")
+            "ATTattattattatt"
+            >>> tantan.mask_repeats("ATTATTATTATTATT", mask='N')
+            "ATTNNNNNNNNNNNN"
+
+        """
         cdef unsigned char[::1]    seq
         cdef vector[unsigned char] mask_data
         cdef unsigned char*        mask_ptr
