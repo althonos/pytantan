@@ -6,6 +6,7 @@
 from libc.math cimport exp
 from libc.limits cimport INT_MAX, UCHAR_MAX
 from libc.stdlib cimport calloc, free
+from libc.string cimport memcmp
 from libcpp.vector cimport vector
 
 from cpython.buffer cimport PyBUF_FORMAT, PyBUF_READ, PyBUF_WRITE
@@ -308,9 +309,21 @@ cdef class ScoreMatrix:
         free(self.fastMatrixPointers)
 
     def __eq__(self, object other):
+        cdef ScoreMatrix matrix
+        cdef int         result
+
         if not isinstance(other, ScoreMatrix):
             return NotImplemented
-        return self.alphabet == other.alphabet and self.matrix == other.matrix
+        matrix = other
+        if self.alphabet != other.alphabet:
+            return False
+        with nogil:
+            result = memcmp(
+                self.fastMatrixPointers[0],
+                matrix.fastMatrixPointers[0],
+                SCORE_MATRIX_SIZE*SCORE_MATRIX_SIZE*sizeof(int)
+            )
+        return result == 0
 
     def __repr__(self):
         cdef str ty = type(self).__name__
