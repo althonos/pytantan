@@ -81,7 +81,7 @@ cdef class Alphabet:
         return cls(DNA.decode('ascii'), protein=False)
 
     @classmethod
-    def amino(cls):
+    def protein(cls):
         return cls(PROTEIN.decode('ascii'), protein=True)
 
     def __init__(self, str letters not None, bint protein = False):
@@ -203,6 +203,53 @@ cdef class ScoreMatrix:
 
     cdef double** probMatrixPointers
     cdef int**    fastMatrixPointers
+
+    @classmethod
+    def dna(
+        cls,
+        *,
+        int match_score = 1,
+        int mismatch_cost = 1
+    ):
+        """Create a match/mismatch score matrix for DNA sequences.
+
+        Arguments:
+            match_score (`int`): The score to use for matching DNA
+                characters.
+            mismatch_cost (`int`): The cost to use for mismatching DNA
+                characters.
+
+        Returns:
+            `~pytantan.ScoreMatrix`: A score matrix with ``match_score``
+            on the diagonal, and ``-mismatch_score`` everywhere else.
+
+        """
+        cdef ssize_t  i
+        cdef Alphabet alphabet = Alphabet.dna()
+        cdef ssize_t  size     = alphabet._abc.size
+        cdef list     matrix   = [[-mismatch_cost]*size for i in range(size)]
+
+        for i in range(size):
+            matrix[i][i] = match_score
+        return cls(alphabet, matrix)
+
+    @classmethod
+    def protein(cls, name: str = "BLOSUM62"):
+        """Load a built-in score matrix for protein sequences.
+
+        Arguments:
+            name (`str`): The name of the NCBI score matrix to use.
+                Supports all BLOSUM matrices.
+
+        Returns:
+            `~pytantan.ScoreMatrix`: The requested score matrix.
+
+        """
+        if name not in _SCORE_MATRICES:
+            raise ValueError(f"Unknown scoring matrix: {name!r}")
+        letters, matrix = _SCORE_MATRICES[name]
+        alphabet = Alphabet(letters, protein=True)
+        return cls(alphabet, matrix)
 
     cdef int _allocate_matrix(self) except 1:
         cdef size_t i
