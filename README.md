@@ -1,4 +1,4 @@
-# 🐍🌈🪨 PyOpal [![Stars](https://img.shields.io/github/stars/althonos/pytantan.svg?style=social&maxAge=3600&label=Star)](https://github.com/althonos/pytantan/stargazers)
+# 🐍🔁 PyTantan [![Stars](https://img.shields.io/github/stars/althonos/pytantan.svg?style=social&maxAge=3600&label=Star)](https://github.com/althonos/pytantan/stargazers)
 
 *[Cython](https://cython.org/) bindings and Python interface to [Tantan](https://gitlab.com/mcfrith/tantan), a fast method for identifying repeats in DNA and protein sequences.*
 
