@@ -4,7 +4,7 @@
 
 [![Actions](https://img.shields.io/github/actions/workflow/status/althonos/pytantan/test.yml?branch=main&logo=github&style=flat-square&maxAge=300)](https://github.com/althonos/pytantan/actions)
 [![Coverage](https://img.shields.io/codecov/c/gh/althonos/pytantan?style=flat-square&maxAge=3600&logo=codecov)](https://codecov.io/gh/althonos/pytantan/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square&maxAge=2678400)](https://choosealicense.com/licenses/mit/)
+[![License](https://img.shields.io/badge/license-GPLv3+-blue.svg?style=flat-square&maxAge=2678400)](https://choosealicense.com/licenses/gpl-3.0/)
 [![PyPI](https://img.shields.io/pypi/v/pytantan.svg?style=flat-square&maxAge=3600&logo=PyPI)](https://pypi.org/project/pytantan)
 [![Bioconda](https://img.shields.io/conda/vn/bioconda/pytantan?style=flat-square&maxAge=3600&logo=anaconda)](https://anaconda.org/bioconda/pytantan)
 [![AUR](https://img.shields.io/aur/version/python-pytantan?logo=archlinux&style=flat-square&maxAge=3600)](https://aur.archlinux.org/packages/python-pytantan)
@@ -137,11 +137,11 @@ terms of the GPLv3 or later as well. See `vendor/tantan/COPYING.txt` for more in
 *This project is in no way not affiliated, sponsored, or otherwise endorsed
 by the [Tantan authors](https://github.com/Martinsos). It was developed
 by [Martin Larralde](https://github.com/althonos/) during his PhD project
-at the [Leiden University Medical Center](https://www.embl.de/) in
+at the [Leiden University Medical Center](https://www.lumc.nl/en/) in
 the [Zeller team](https://github.com/zellerlab).*
 
 
 ## 📚 References
 
-- <a id="ref1">\[1\]</a> Korpar Matija, Martin Šošić, Dino Blažeka, Mile Šikić. SW#db: ‘GPU-Accelerated Exact Sequence Similarity Database Search’. PLoS One. 2015 Dec 31;10(12):e0145857. [doi:10.1371/journal.pone.0145857](https://doi.org/10.1371/journal.pone.0145857). [PMID:26719890](https://pubmed.ncbi.nlm.nih.gov/26719890). [PMC4699916](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4699916/).
-- <a id="ref2">\[2\]</a> Rognes Torbjørn. Faster Smith-Waterman database searches with inter-sequence SIMD parallelisation. BMC Bioinformatics. 2011 Jun 1;12:221. [doi:10.1186/1471-2105-12-221](https://doi.org/10.1186/1471-2105-12-221). [PMID:21631914](https://pubmed.ncbi.nlm.nih.gov/21631914/).[PMC3120707](http://www.ncbi.nlm.nih.gov/pmc/articles/pmc3120707/).
+- <a id="ref1">\[1\]</a> Frith, Martin C. “A new repeat-masking method enables specific detection of homologous sequences.” Nucleic acids research vol. 39,4 (2011): e23. [doi:10.1093/nar/gkq1212](https://doi.org/10.1093/nar/gkq1212)
+
