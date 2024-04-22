@@ -85,12 +85,18 @@ cdef class Alphabet:
         return cls(PROTEIN.decode('ascii'), protein=True)
 
     def __init__(self, str letters not None, bint protein = False):
+        if len(letters) != len(set(letters)):
+            raise ValueError(f"Duplicate letters found in alphabet: {letters!r}")
+        elif not letters.isupper():
+            raise ValueError("Alphabet must only contain uppercase characters")
+        elif not letters.isalpha():
+            raise ValueError("Alphabet must only contain alphabetic characters")
         self.letters = letters
         self._protein = protein
         self._abc.fromString(self.letters.encode('ascii'))
 
     def __len__(self):
-        return self.length
+        return self._abc.size
 
     def __contains__(self, object item):
         return item in self.letters
@@ -205,6 +211,7 @@ cdef class Alphabet:
 
 cdef class ScoreMatrix:
     cdef readonly Alphabet alphabet
+    cdef readonly str      columns
     cdef Py_ssize_t        _shape[2]
 
     cdef double** probMatrixPointers
@@ -253,9 +260,10 @@ cdef class ScoreMatrix:
         """
         if name not in _SCORE_MATRICES:
             raise ValueError(f"Unknown scoring matrix: {name!r}")
-        letters, matrix = _SCORE_MATRICES[name]
-        alphabet = Alphabet(letters, protein=True)
-        return cls(alphabet, matrix)
+
+        columns, matrix = _SCORE_MATRICES[name]
+        alphabet = Alphabet.protein()
+        return cls(alphabet, matrix, columns=columns)
 
     cdef int _allocate_matrix(self) except 1:
         cdef size_t i
@@ -279,7 +287,7 @@ cdef class ScoreMatrix:
             self.fastMatrixPointers[i] = &self.fastMatrixPointers[0][i * 64]
             self.probMatrixPointers[i] = &self.probMatrixPointers[0][i * 64]
 
-    cdef int _make_fast_matrix(self, vector[vector[int]]& scores) except 1:
+    cdef int _make_fast_matrix(self, vector[vector[int]]& scores, vector[char]& letters) except 1:
         cdef size_t i
         cdef size_t j
         cdef int    a
@@ -291,8 +299,8 @@ cdef class ScoreMatrix:
         cdef int    default = INT_MAX
 
         # find default score
-        for i in range(self.alphabet._abc.size):
-            for j in range(self.alphabet._abc.size):
+        for i in range(letters.size()):
+            for j in range(letters.size()):
                 if scores[i][j] < default:
                     default = scores[i][j]
 
@@ -301,13 +309,11 @@ cdef class ScoreMatrix:
             self.fastMatrixPointers[0][i] = default
 
         # update matrix with scores
-        for i in range(self.alphabet._abc.size):
-            x = self.alphabet._abc.numbersToLetters[i]
+        for i, x in enumerate(letters):
             a = self.alphabet._abc.lettersToNumbers[toupper(x)]
             b = self.alphabet._abc.lettersToNumbers[tolower(x)]
 
-            for j in range(self.alphabet._abc.size):
-                y = self.alphabet._abc.numbersToLetters[j]
+            for j, y in enumerate(letters):
                 c = self.alphabet._abc.lettersToNumbers[toupper(y)]
                 d = self.alphabet._abc.lettersToNumbers[tolower(y)]
 
@@ -331,7 +337,12 @@ cdef class ScoreMatrix:
             x = lambda_ * self.fastMatrixPointers[0][i]
             self.probMatrixPointers[0][i] = exp(x)
 
-    def __init__(self, Alphabet alphabet not None, object matrix not None):
+    def __init__(
+        self,
+        Alphabet alphabet not None,
+        object matrix not None,
+        str columns = None
+    ):
         """Create a new score matrix from the given alphabet and scores.
 
         Arguments:
@@ -339,6 +350,8 @@ cdef class ScoreMatrix:
                 similarity matrix.
             matrix (`~numpy.typing.ArrayLike` of `int`): The scoring matrix,
                 as a square matrix indexed by the alphabet characters.
+            columns (`str`): The column letters. If `None` given, use the
+                alphabet letters.
 
         Example:
             Create a new similarity matrix using the HOXD70 scores by
@@ -356,30 +369,47 @@ cdef class ScoreMatrix:
             the `Bio.Align.substitution_matrices` module::
 
                 >>> jones = Bio.Align.substitution_matrices.load('JONES')
-                >>> matrix = ScoreMatrix(jones.alphabet, jones)
+                >>> matrix = ScoreMatrix(
+                ...     Alphabet.protein(),
+                ...     jones,
+                ...     columns=jones.alphabet
+                ... )
 
         """
+        cdef size_t              i
+        cdef size_t              colsize
         cdef double              lambda_
+        cdef vector[char]        cols    = vector[char]()
         cdef vector[vector[int]] scores  = vector[vector[int]]()
 
         # record alphabet
         self.alphabet = alphabet
-        self._shape[0] = self._shape[1] = self.alphabet._abc.size
+        self._shape[0] = self._shape[1] = SCORE_MATRIX_SIZE
+
+        # get column letters
+        if columns is None:
+            self.columns = alphabet.letters
+        else:
+            self.columns = columns
+        if len(self.columns) != len(set(self.columns)):
+            raise ValueError(f"Duplicate letters found in columns: {self.columns!r}")
+        for l in self.columns:
+            cols.push_back(ord(l))
 
         # extract scores
-        if len(matrix) != self.alphabet._abc.size:
-            raise ValueError("Matrix length should be equal to alphabet length")
-        scores.resize(alphabet._abc.size)
+        if len(matrix) != cols.size():
+            raise ValueError("Matrix length should be equal to columns length")
+        scores.resize(cols.size())
         for i, row in enumerate(matrix):
-            scores[i].resize(alphabet._abc.size)
-            if len(row) != alphabet._abc.size:
-                raise ValueError("Matrix width should be equal to alphabet length")
+            scores[i].resize(cols.size())
+            if len(row) != cols.size():
+                raise ValueError("Matrix width should be equal to columns length")
             for j, x in enumerate(row):
                 scores[i][j] = x
 
         # prepare fast matrix
         self._allocate_matrix()
-        self._make_fast_matrix(scores)
+        self._make_fast_matrix(scores, cols)
         self._make_likelihood_matrix()
 
     def __dealloc__(self):
@@ -412,7 +442,7 @@ cdef class ScoreMatrix:
         return f"{ty}({self.alphabet!r}, {self.matrix!r})"
 
     def __reduce__(self):
-        return (type(self), (self.alphabet, self.matrix))
+        return (type(self), (self.alphabet, self.matrix, self.columns))
 
     def __getbuffer__(self, Py_buffer* buffer, int flags):
         if flags & PyBUF_FORMAT:
@@ -434,14 +464,25 @@ cdef class ScoreMatrix:
     def matrix(self):
         """`list` of `list` of `int`: The score matrix.
         """
-        cdef int        i
-        cdef int        j
-        cdef int        length = self.alphabet._abc.size
+        cdef int  i
+        cdef int  j
+        cdef list row
+        cdef int  length = self.alphabet._abc.size
+        cdef list matrix = []
 
-        return [
-            [ self.fastMatrixPointers[i][j] for j in range(length) ]
-            for i in range(length)
-        ]
+        for x in self.columns:
+            row = []
+            i = self.alphabet._abc.lettersToNumbers[ord(x)]
+            for y in self.columns:
+                j = self.alphabet._abc.lettersToNumbers[ord(y)]
+                row.append( self.fastMatrixPointers[i][j] )
+            matrix.append(row)
+
+        return matrix
+        # return [
+        #     [ self.fastMatrixPointers[i][j] for j in range(length) ]
+        #     for i in range(length)
+        # ]
 
 
 # --- RepeatFinder -------------------------------------------------------------
@@ -464,7 +505,7 @@ cdef class RepeatFinder:
         Arguments:
             score_matrix (`~pytantan.ScoreMatrix`): The score matrix to use
                 for scoring sequence alignments.
-            repeat_start (`float`): The probability of a repeat starting 
+            repeat_start (`float`): The probability of a repeat starting
                 per position.
             repeat_end (`float`): The probability of a repeat ending per
                 position.
@@ -538,7 +579,7 @@ cdef class RepeatFinder:
             threshold (`float`): The probability threshold above which to
                 mask sequence characters.
             mask (`str` or `None`): A mask character to use for masking
-                positions. If `None` given, the masking uses lowercase 
+                positions. If `None` given, the masking uses lowercase
                 letters of the original sequence character.
 
         Returns:

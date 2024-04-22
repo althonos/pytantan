@@ -14,3 +14,10 @@ __all__ = [
     "FullResult",
     "align",
 ]
+
+from . import lib
+from .lib import (
+    Alphabet,
+    ScoreMatrix,
+    RepeatFinder,
+)
