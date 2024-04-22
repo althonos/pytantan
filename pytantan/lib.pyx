@@ -260,7 +260,6 @@ cdef class ScoreMatrix:
         """
         if name not in _SCORE_MATRICES:
             raise ValueError(f"Unknown scoring matrix: {name!r}")
-
         columns, matrix = _SCORE_MATRICES[name]
         alphabet = Alphabet.protein()
         return cls(alphabet, matrix, columns=columns)
@@ -299,8 +298,10 @@ cdef class ScoreMatrix:
         cdef int    default = INT_MAX
 
         # find default score
-        for i in range(letters.size()):
-            for j in range(letters.size()):
+        for i in range(scores.size()):
+            for j in range(scores.size()):
+                if j >= scores[i].size():
+                    raise IndexError(j)
                 if scores[i][j] < default:
                     default = scores[i][j]
 
@@ -340,7 +341,7 @@ cdef class ScoreMatrix:
     def __init__(
         self,
         Alphabet alphabet not None,
-        object matrix not None,
+        object matrix,
         str columns = None
     ):
         """Create a new score matrix from the given alphabet and scores.
@@ -368,11 +369,11 @@ cdef class ScoreMatrix:
             Create a new similarity matrix using one of the matrices from
             the `Bio.Align.substitution_matrices` module::
 
-                >>> jones = Bio.Align.substitution_matrices.load('JONES')
+                >>> feng = Bio.Align.substitution_matrices.load('FENG')
                 >>> matrix = ScoreMatrix(
                 ...     Alphabet.protein(),
-                ...     jones,
-                ...     columns=jones.alphabet
+                ...     feng,
+                ...     columns=feng.alphabet
                 ... )
 
         """
@@ -397,15 +398,14 @@ cdef class ScoreMatrix:
             cols.push_back(ord(l))
 
         # extract scores
-        if len(matrix) != cols.size():
-            raise ValueError("Matrix length should be equal to columns length")
-        scores.resize(cols.size())
         for i, row in enumerate(matrix):
-            scores[i].resize(cols.size())
-            if len(row) != cols.size():
+            scores.push_back(vector[int]())
+            for x in row:
+                scores[i].push_back(x)
+            if scores[i].size() != cols.size():
                 raise ValueError("Matrix width should be equal to columns length")
-            for j, x in enumerate(row):
-                scores[i][j] = x
+        if scores.size() != cols.size():
+            raise ValueError(f"Matrix length should be equal to columns length: {scores.size()} != {cols.size()}")
 
         # prepare fast matrix
         self._allocate_matrix()
@@ -590,9 +590,9 @@ cdef class RepeatFinder:
             >>> matrix = ScoreMatrix.dna()
             >>> tantan = RepeatFinder(matrix)
             >>> tantan.mask_repeats("ATTATTATTATTATT")
-            "ATTattattattatt"
+            'ATTattattattatt'
             >>> tantan.mask_repeats("ATTATTATTATTATT", mask='N')
-            "ATTNNNNNNNNNNNN"
+            'ATTNNNNNNNNNNNN'
 
         """
         cdef unsigned char[::1]    seq
