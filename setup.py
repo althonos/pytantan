@@ -617,7 +617,6 @@ setuptools.setup(
                 os.path.join("vendor", "tantan", "src", "cbrc_linalg.cc"),
                 os.path.join("vendor", "tantan", "src", "LambdaCalculator.cc"),
                 os.path.join("vendor", "tantan", "src", "mcf_alphabet.cc"),
-                os.path.join("vendor", "tantan", "src", "mcf_score_matrix.cc"),
                 os.path.join("vendor", "tantan", "src", "mcf_tantan_options.cc"),
                 os.path.join("pytantan", "lib.pyx")
             ],
