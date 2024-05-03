@@ -5,16 +5,10 @@ __author__ = "Martin Larralde <martin.larralde@embl.de>"
 __license__ = "GPLv3+"
 __all__ = [
     "Alphabet",
-    "Aligner",
-    "BaseDatabase",
-    "Database",
-    "ScoreMatrix",
-    "ScoreResult",
-    "EndResult",
-    "FullResult",
-    "align",
+    "RepeatFinder",
+    "mask_repeats",
 ]
 
 from . import lib
 from ._mask import mask_repeats
-from .lib import Alphabet, ScoreMatrix, RepeatFinder
+from .lib import Alphabet, RepeatFinder

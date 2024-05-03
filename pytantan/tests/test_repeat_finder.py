@@ -3,7 +3,10 @@ import unittest
 import sys
 import textwrap
 
+from scoring_matrices import ScoringMatrix
+
 import pytantan
+from pytantan._mask import _match_mismatch
 
 def inline(x):
     return textwrap.dedent(x).replace("\n", "").strip()
@@ -32,7 +35,7 @@ TITIN_H16 = inline(
 class TestRepeatFinder(unittest.TestCase):
 
     def test_hard(self):
-        matrix = pytantan.ScoreMatrix.match_mismatch()
+        matrix = _match_mismatch("ATCG")
         
         tantan = pytantan.RepeatFinder(matrix)
         self.assertEqual(
@@ -47,7 +50,7 @@ class TestRepeatFinder(unittest.TestCase):
         )
 
     def titin_h16(self):
-        matrix = pytantan.ScoreMatrix.protein()
+        matrix = ScoringMatrix.from_name("BLOSUM62")
 
         tantan = pytantan.RepeatFinder(matrix)
         self.assertEqual(

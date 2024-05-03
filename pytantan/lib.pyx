@@ -30,6 +30,8 @@ if SSE4_BUILD_SUPPORT:
 if AVX2_BUILD_SUPPORT:
     from .platform.avx2 cimport maskSequencesAVX2, getProbabilitiesAVX2
 
+from scoring_matrices cimport ScoringMatrix
+
 cdef extern from "<cctype>" namespace "std" nogil:
     cdef bint isalpha(int ch)
     cdef int toupper(int ch)
@@ -39,8 +41,6 @@ cdef extern from "<cctype>" namespace "std" nogil:
 
 import array
 import itertools
-
-include "matrices.pxi"
 
 # --- Runtime CPU detection ----------------------------------------------------
 
@@ -211,60 +211,15 @@ cdef class Alphabet:
         return decoded.decode('ascii')
 
 
-cdef class ScoreMatrix:
-    cdef readonly Alphabet alphabet
-    cdef readonly str      columns
-    cdef Py_ssize_t        _shape[2]
+cdef class LikelihoodMatrix:
+    cdef Py_ssize_t             _shape[2]
 
-    cdef double** probMatrixPointers
+    cdef readonly Alphabet      alphabet
+    cdef readonly str           columns
+    cdef readonly ScoringMatrix scoring_matrix
+
     cdef int**    fastMatrixPointers
-
-    @classmethod
-    def match_mismatch(
-        cls,
-        Alphabet alphabet = Alphabet.dna(),
-        *,
-        int match_score = 1,
-        int mismatch_cost = 1
-    ):
-        """Create a match/mismatch score matrix for tje given alphabet.
-
-        Arguments:
-            match_score (`int`): The score to use for matching sequence
-                characters.
-            mismatch_cost (`int`): The cost to use for mismatching 
-                sequence characters.
-
-        Returns:
-            `~pytantan.ScoreMatrix`: A score matrix with ``match_score``
-            on the diagonal, and ``-mismatch_score`` everywhere else.
-
-        """
-        cdef ssize_t  i
-        cdef ssize_t  size     = alphabet._abc.size
-        cdef list     matrix   = [[-mismatch_cost]*size for i in range(size)]
-
-        for i in range(size):
-            matrix[i][i] = match_score
-        return cls(alphabet, matrix)
-
-    @classmethod
-    def protein(cls, name: str = "BLOSUM62"):
-        """Load a built-in score matrix for protein sequences.
-
-        Arguments:
-            name (`str`): The name of the NCBI score matrix to use.
-                Supports all BLOSUM matrices.
-
-        Returns:
-            `~pytantan.ScoreMatrix`: The requested score matrix.
-
-        """
-        if name not in _SCORE_MATRICES:
-            raise ValueError(f"Unknown scoring matrix: {name!r}")
-        columns, matrix = _SCORE_MATRICES[name]
-        alphabet = Alphabet.protein()
-        return cls(alphabet, matrix, columns=columns)
+    cdef double** probMatrixPointers
 
     cdef int _allocate_matrix(self) except 1:
         cdef size_t i
@@ -343,45 +298,21 @@ cdef class ScoreMatrix:
     def __init__(
         self,
         Alphabet alphabet not None,
-        object matrix,
-        str columns = None
+        ScoringMatrix scoring_matrix not None,
     ):
         """Create a new score matrix from the given alphabet and scores.
 
         Arguments:
             alphabet (`str` or `~pytantan.Alphabet`): The alphabet of the
                 similarity matrix.
-            matrix (`~numpy.typing.ArrayLike` of `int`): The scoring matrix,
-                as a square matrix indexed by the alphabet characters.
-            columns (`str`): The column letters. If `None` given, use the
-                alphabet letters.
-
-        Example:
-            Create a new similarity matrix using the HOXD70 scores by
-            Chiaromonte, Yap and Miller (:pmid:`11928468`)::
-
-                >>> matrix = ScoreMatrix(
-                ...     Alphabet.dna(),
-                ...     [[  91, -114,  -31, -123],
-                ...      [-114,  100, -125,  -31],
-                ...      [ -31, -125,  100, -114],
-                ...      [-123,  -31, -114,   91]]
-                ... )
-
-            Create a new similarity matrix using one of the matrices from
-            the `Bio.Align.substitution_matrices` module::
-
-                >>> feng = Bio.Align.substitution_matrices.load('FENG')
-                >>> matrix = ScoreMatrix(
-                ...     Alphabet.protein(),
-                ...     feng,
-                ...     columns=feng.alphabet
-                ... )
+            scoring_matrix (`scoring_matrices.ScoringMatrix`): The scoring 
+                matrix, indexed by the alphabet characters.
 
         """
         cdef size_t              i
         cdef size_t              colsize
         cdef double              lambda_
+        cdef const float**       matrix 
         cdef vector[char]        cols    = vector[char]()
         cdef vector[vector[int]] scores  = vector[vector[int]]()
 
@@ -389,25 +320,20 @@ cdef class ScoreMatrix:
         self.alphabet = alphabet
         self._shape[0] = self._shape[1] = SCORE_MATRIX_SIZE
 
-        # get column letters
-        if columns is None:
-            self.columns = alphabet.letters
-        else:
-            self.columns = columns
-        if len(self.columns) != len(set(self.columns)):
-            raise ValueError(f"Duplicate letters found in columns: {self.columns!r}")
+        # handle scoring matrix
+        if not scoring_matrix.is_integer():
+            raise ValueError("Expected integer scoring matrix")
+        self.scoring_matrix = scoring_matrix
+        self.columns = self.scoring_matrix.alphabet
         for l in self.columns:
             cols.push_back(ord(l))
 
         # extract scores
-        for i, row in enumerate(matrix):
+        matrix = self.scoring_matrix.matrix()
+        for i in range(len(self.scoring_matrix)):
             scores.push_back(vector[int]())
-            for x in row:
-                scores[i].push_back(x)
-            if scores[i].size() != cols.size():
-                raise ValueError("Matrix width should be equal to columns length")
-        if scores.size() != cols.size():
-            raise ValueError(f"Matrix length should be equal to columns length: {scores.size()} != {cols.size()}")
+            for j in range(len(self.scoring_matrix)):
+                scores[i].push_back(<int> matrix[i][j])
 
         # prepare fast matrix
         self._allocate_matrix()
@@ -421,71 +347,7 @@ cdef class ScoreMatrix:
         if self.fastMatrixPointers is not NULL:
             free(self.fastMatrixPointers[0])
         free(self.fastMatrixPointers)
-
-    def __eq__(self, object other):
-        cdef ScoreMatrix matrix
-        cdef int         result
-
-        if not isinstance(other, ScoreMatrix):
-            return NotImplemented
-        matrix = other
-        if self.alphabet != other.alphabet:
-            return False
-        with nogil:
-            result = memcmp(
-                self.fastMatrixPointers[0],
-                matrix.fastMatrixPointers[0],
-                SCORE_MATRIX_SIZE*SCORE_MATRIX_SIZE*sizeof(int)
-            )
-        return result == 0
-
-    def __repr__(self):
-        cdef str ty = type(self).__name__
-        return f"{ty}({self.alphabet!r}, {self.matrix!r})"
-
-    def __reduce__(self):
-        return (type(self), (self.alphabet, self.matrix, self.columns))
-
-    def __getbuffer__(self, Py_buffer* buffer, int flags):
-        if flags & PyBUF_FORMAT:
-            buffer.format = b"i"
-        else:
-            buffer.format = NULL
-        buffer.buf = self.fastMatrixPointers[0]
-        buffer.internal = NULL
-        buffer.itemsize = sizeof(int)
-        buffer.len = self._shape[0] * self._shape[1] * sizeof(int)
-        buffer.ndim = 2
-        buffer.obj = self
-        buffer.readonly = 1
-        buffer.shape = <Py_ssize_t*> &self._shape
-        buffer.suboffsets = NULL
-        buffer.strides = NULL
-
-    @property
-    def matrix(self):
-        """`list` of `list` of `int`: The score matrix.
-        """
-        cdef int  i
-        cdef int  j
-        cdef list row
-        cdef int  length = self.alphabet._abc.size
-        cdef list matrix = []
-
-        for x in self.columns:
-            row = []
-            i = self.alphabet._abc.lettersToNumbers[ord(x)]
-            for y in self.columns:
-                j = self.alphabet._abc.lettersToNumbers[ord(y)]
-                row.append( self.fastMatrixPointers[i][j] )
-            matrix.append(row)
-
-        return matrix
-        # return [
-        #     [ self.fastMatrixPointers[i][j] for j in range(length) ]
-        #     for i in range(length)
-        # ]
-
+    
 
 # --- RepeatFinder -------------------------------------------------------------
 
@@ -494,8 +356,9 @@ cdef class RepeatFinder:
     cdef          _mask_fn_t    _mask_sequences
     cdef          _probas_fn_t  _get_probabilities
 
-    cdef readonly Alphabet      alphabet
-    cdef readonly ScoreMatrix   score_matrix
+    cdef readonly Alphabet         alphabet
+    cdef readonly ScoringMatrix    scoring_matrix
+    cdef          LikelihoodMatrix likelihood_matrix
 
     def __cinit__(self):
         self._mask_sequences = NULL
@@ -503,31 +366,35 @@ cdef class RepeatFinder:
 
     def __init__(
         self,
-        ScoreMatrix score_matrix not None,
+        ScoringMatrix scoring_matrix not None,
         *,
         double repeat_start = 0.005,
         double repeat_end = 0.05,
         double decay = 0.9,
+        bint protein = False,
     ):
         """Create a new repeat finder.
 
         Arguments:
-            score_matrix (`~pytantan.ScoreMatrix`): The score matrix to use
-                for scoring sequence alignments.
+            scoring_matrix (`~pytantan.ScoringMatrix`): The scoring matrix to 
+                use for scoring sequence alignments.
             repeat_start (`float`): The probability of a repeat starting
                 per position.
             repeat_end (`float`): The probability of a repeat ending per
                 position.
             decay (`float`): The probability decay per period.
+            protein (`bool`): Set to `True` to treat the input sequence as
+                a protein sequence.
 
         """
         # store score matrix and alphabet
-        self.score_matrix = score_matrix
-        self.alphabet = score_matrix.alphabet
+        self.alphabet = Alphabet(scoring_matrix.alphabet)
+        self.scoring_matrix = scoring_matrix
+        self.likelihood_matrix = LikelihoodMatrix(self.alphabet, self.scoring_matrix)
         # initialize options
-        self._options.isProtein = self.alphabet._protein
+        self._options.isProtein = protein
         if self._options.maxCycleLength < 0:
-            self._options.maxCycleLength = 50 if self.alphabet._protein else 100
+            self._options.maxCycleLength = 50 if protein else 100
         if self._options.mismatchCost == 0:
             self._options.mismatchCost = INT_MAX
         self._options.repeatProb = repeat_start
@@ -582,7 +449,7 @@ cdef class RepeatFinder:
                 &seq[0],
                 &seq[seq.shape[0]],
                 self._options.maxCycleLength,
-                <const double**> self.score_matrix.probMatrixPointers,
+                <const double**> self.likelihood_matrix.probMatrixPointers,
                 self._options.repeatProb,
                 self._options.repeatEndProb,
                 self._options.repeatOffsetProbDecay,
@@ -614,7 +481,13 @@ cdef class RepeatFinder:
             `str`: The input sequence with repeat regions masked.
 
         Example:
-            >>> matrix = ScoreMatrix.match_mismatch()
+            >>> matrix = ScoringMatrix(
+            ...     [[ 1, -1, -1, -1], 
+            ...      [-1,  1, -1, -1],
+            ...      [-1, -1,  1, -1],
+            ...      [-1, -1, -1,  1]],
+            ...     alphabet="ACGT",
+            ... )
             >>> tantan = RepeatFinder(matrix)
             >>> tantan.mask_repeats("ATTATTATTATTATT")
             'ATTattattattatt'
@@ -650,7 +523,7 @@ cdef class RepeatFinder:
                 &seq[0],
                 &seq[seq.shape[0]],
                 self._options.maxCycleLength,
-                <const double**> self.score_matrix.probMatrixPointers,
+                <const double**> self.likelihood_matrix.probMatrixPointers,
                 self._options.repeatProb,
                 self._options.repeatEndProb,
                 self._options.repeatOffsetProbDecay,

@@ -14,6 +14,8 @@ import types
 import warnings
 from unittest import mock
 
+from scoring_matrices import ScoringMatrix
+
 import pytantan
 
 
@@ -68,7 +70,7 @@ def load_tests(loader, tests, ignore):
     packages = [None, pytantan.lib]
 
     for pkg in iter(packages.pop, None):
-        globs = dict(pyopal=pytantan, Bio=Bio, **pkg.__dict__)
+        globs = dict(pyopal=pytantan, ScoringMatrix=ScoringMatrix, Bio=Bio, **pkg.__dict__)
         tests.addTests(
             doctest.DocTestSuite(
                 pkg,

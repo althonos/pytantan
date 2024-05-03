@@ -116,11 +116,6 @@ class sdist(_sdist):
     """A `sdist` that generates a `pyproject.toml` on the fly."""
 
     def run(self):
-        # generate score matrices
-        if not self.distribution.have_run.get("build_matrices", False):
-            _build_cmd = self.get_finalized_command("build_matrices")
-            _build_cmd.force = self.force
-            _build_cmd.run()
         # build `pyproject.toml` from `setup.cfg`
         c = configparser.ConfigParser()
         c.add_section("build-system")
@@ -130,55 +125,6 @@ class sdist(_sdist):
             c.write(pyproject)
         # run the rest of the packaging
         _sdist.run(self)
-
-
-class build_matrices(setuptools.Command):
-
-    user_options = [
-        ('force', 'f', 'force generation of files'),
-        ('output=', 'o', 'output file to write'),
-        ('matrices=', 'm', 'matrices to generate'),
-    ]
-
-    def initialize_options(self) -> None:
-        self.force = False
-        self.output = None
-        self.matrices = None
-
-    def finalize_options(self) -> None:
-        self.folder = "data"
-        self.output = os.path.join("pytantan", "matrices.pxi")
-        if self.matrices is not None:
-            self.matrices = _split_multiline(self.matrices)
-        else:
-            self.matrices = []
-
-    def run(self):
-        matrix_files = [ os.path.join(self.folder, f"{matrix}.mat") for matrix in self.matrices ]
-        self.make_file(matrix_files, self.output, self._generate_matrices, (matrix_files, self.output))
-
-    def _parse_matrix_file(self, matrix_file):
-        with open(matrix_file) as f:
-            lines = filter(
-                lambda line: line and not line.startswith("#"),
-                map(str.strip, f),
-            )
-            letters = ''.join(next(lines).split())
-            matrix = [
-                list(map(int, line.strip().split()[1:]))
-                for line in map(str.strip, lines)
-                if line
-            ]
-        return letters, matrix
-
-    def _generate_matrices(self, matrix_files, output_file):
-        matrices = {}
-        for matrix_file in matrix_files:
-            matrix_name = os.path.splitext(os.path.basename(matrix_file))[0].upper()
-            matrices[matrix_name] = self._parse_matrix_file(matrix_file)
-
-        with open(output_file, "w") as dst:
-            dst.write("cdef dict _SCORE_MATRICES = {}".format(json.dumps(matrices, indent=4)))
 
 
 class build_ext(_build_ext):
@@ -460,12 +406,6 @@ class build_ext(_build_ext):
         if platform.system() == "Darwin":
             _patch_osx_compiler(self.compiler)
 
-        # generate score matrices
-        if not self.distribution.have_run.get("build_matrices", False):
-            _build_cmd = self.get_finalized_command("build_matrices")
-            _build_cmd.force = self.force
-            _build_cmd.run()
-
         # generate files from templates:
         for i, ext in enumerate(self.extensions):
             if isinstance(ext, ExtensionTemplate):
@@ -686,7 +626,6 @@ setuptools.setup(
     cmdclass={
         "sdist": sdist,
         "build_ext": build_ext,
-        "build_matrices": build_matrices,
         "clean": clean,
     },
 )

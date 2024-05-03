@@ -1,9 +1,19 @@
 import collections
 
-from .lib import Alphabet, ScoreMatrix, RepeatFinder
+from .lib import Alphabet, RepeatFinder
+
+from scoring_matrices import ScoringMatrix
+
 
 _DNA = Alphabet.dna()
 _PROTEIN = Alphabet.protein()
+
+
+def _match_mismatch(alphabet, match_score=1, mismatch_cost=1):
+    matrix = [ [-mismatch_cost for _ in alphabet] for _ in alphabet]
+    for i in range(len(alphabet)):
+        matrix[i][i] = match_score
+    return ScoringMatrix(matrix, alphabet=alphabet)
 
 
 def mask_repeats(
@@ -11,7 +21,7 @@ def mask_repeats(
     *,
     protein=False,
     # preserve_case=False,
-    score_matrix=None,
+    scoring_matrix=None,
     match_score=None,
     mismatch_cost=None,
     repeat_start=0.005,
@@ -30,10 +40,11 @@ def mask_repeats(
             the repeats to mask.
         protein (`bool`): Set to `True` to treat the input sequence as
             a protein sequence.
-        score_matrix (`str` or `~pytantan.ScoreMatrix`): A score matrix
-            to use for scoring character matches and mismatches. Either
-            pass a matrix name (such as ``BLOSUM62``) to load built-in
-            matrix, or a pre-initialized `ScoreMatrix` object.
+        scoring_matrix (`str` or `~scoring_matrices.ScoringMatrix`): A 
+            scoring matrix to use for scoring character matches and 
+            mismatches. Either pass a matrix name (such as ``BLOSUM62``) 
+            to load a built-in matrix, or a pre-initialized `ScoringMatrix` 
+            object.
         match_score (`int`): The score for scoring character matches.
             Must be set along `mismatch_cost`. Incompatible with the
             `score_matrix` option.
@@ -56,30 +67,28 @@ def mask_repeats(
         raise ValueError("Cannot set `match_score` without setting `mismatch_cost`")
     elif match_score is None and mismatch_cost is not None:
         raise ValueError("Cannot set `mismatch_cost` without setting `match_score`")
-    if score_matrix is not None and match_score is not None:
-        raise ValueError("Cannot set both `score_matrix` and `match_score`")
+    if scoring_matrix is not None and match_score is not None:
+        raise ValueError("Cannot set both `scoring_matrix` and `match_score`")
 
-    if isinstance(score_matrix, ScoreMatrix):
-        matrix = score_matrix
-    elif isinstance(score_matrix, str) and protein:
-
-        matrix = ScoreMatrix(score_matrix)
+    if isinstance(scoring_matrix, ScoringMatrix):
+        matrix = scoring_matrix
+    elif isinstance(scoring_matrix, str):
+        matrix = ScoringMatrix.from_name(scoring_matrix)
     elif match_score is not None:
-        matrix = ScoreMatrix.match_mismatch(
-            _PROTEIN if protein else _DNA, 
+        matrix = _match_mismatch(
+            alphabet=_PROTEIN.letters if protein else _DNA.letters,
             match_score=match_score, 
-            mismatch_cost=mismatch_cost
+            mismatch_cost=mismatch_cost,
         )
     else:
-        matrix = ScoreMatrix.match_mismatch(
-            _PROTEIN if protein else _DNA
-        )
+        matrix = _match_mismatch(_PROTEIN.letters if protein else _DNA.letters)
 
     repeat_finder = RepeatFinder(
         matrix,
         repeat_start=repeat_start,
         repeat_end=repeat_end,
-        decay=decay
+        decay=decay,
+        protein=protein,
     )        
     return repeat_finder.mask_repeats(
         sequence,
