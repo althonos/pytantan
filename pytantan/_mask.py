@@ -9,13 +9,6 @@ _DNA = Alphabet.dna()
 _PROTEIN = Alphabet.protein()
 
 
-def _match_mismatch(alphabet, match_score=1, mismatch_cost=1):
-    matrix = [ [-mismatch_cost for _ in alphabet] for _ in alphabet]
-    for i in range(len(alphabet)):
-        matrix[i][i] = match_score
-    return ScoringMatrix(matrix, alphabet=alphabet)
-
-
 def mask_repeats(
     sequence,
     *,
@@ -75,13 +68,17 @@ def mask_repeats(
     elif isinstance(scoring_matrix, str):
         matrix = ScoringMatrix.from_name(scoring_matrix)
     elif match_score is not None:
-        matrix = _match_mismatch(
+        matrix = ScoringMatrix.from_match_mismatch(
             alphabet=_PROTEIN.letters if protein else _DNA.letters,
             match_score=match_score, 
-            mismatch_cost=mismatch_cost,
+            mismatch_score=-mismatch_cost,
         )
     else:
-        matrix = _match_mismatch(_PROTEIN.letters if protein else _DNA.letters)
+        matrix = ScoringMatrix.from_match_mismatch(
+            alphabet=_PROTEIN.letters if protein else _DNA.letters,
+            match_score=1.0, 
+            mismatch_score=-1.0,
+        )
 
     repeat_finder = RepeatFinder(
         matrix,

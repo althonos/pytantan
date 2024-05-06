@@ -313,6 +313,7 @@ cdef class LikelihoodMatrix:
         cdef size_t              colsize
         cdef double              lambda_
         cdef const float**       matrix 
+        cdef size_t              size
         cdef vector[char]        cols    = vector[char]()
         cdef vector[vector[int]] scores  = vector[vector[int]]()
 
@@ -329,11 +330,13 @@ cdef class LikelihoodMatrix:
             cols.push_back(ord(l))
 
         # extract scores
-        matrix = self.scoring_matrix.matrix()
-        for i in range(len(self.scoring_matrix)):
-            scores.push_back(vector[int]())
-            for j in range(len(self.scoring_matrix)):
-                scores[i].push_back(<int> matrix[i][j])
+        with nogil:
+            matrix = self.scoring_matrix.matrix_ptr()
+            size = self.scoring_matrix.size()
+            for i in range(size):
+                scores.push_back(vector[int]())
+                for j in range(size):
+                    scores[i].push_back(<int> matrix[i][j])
 
         # prepare fast matrix
         self._allocate_matrix()

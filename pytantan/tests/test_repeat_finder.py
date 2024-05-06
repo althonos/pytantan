@@ -6,7 +6,6 @@ import textwrap
 from scoring_matrices import ScoringMatrix
 
 import pytantan
-from pytantan._mask import _match_mismatch
 
 def inline(x):
     return textwrap.dedent(x).replace("\n", "").strip()
@@ -35,7 +34,7 @@ TITIN_H16 = inline(
 class TestRepeatFinder(unittest.TestCase):
 
     def test_hard(self):
-        matrix = _match_mismatch("ATCG")
+        matrix = ScoringMatrix.from_match_mismatch(1.0, -1.0, alphabet="ATCG")
         
         tantan = pytantan.RepeatFinder(matrix)
         self.assertEqual(
