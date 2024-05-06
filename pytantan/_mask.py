@@ -40,10 +40,10 @@ def mask_repeats(
             object.
         match_score (`int`): The score for scoring character matches.
             Must be set along `mismatch_cost`. Incompatible with the
-            `score_matrix` option.
+            `scoring_matrix` option.
         match_score (`int`): The penalty for scoring character mismatches.
             Must be set along `match_score`. Incompatible with the
-            `score_matrix` option.
+            `scoring_matrix` option.
         repeat_start (`float`): The probability of a repeat starting
             per position.
         repeat_end (`float`): The probability of a repeat ending per
@@ -67,6 +67,9 @@ def mask_repeats(
         matrix = scoring_matrix
     elif isinstance(scoring_matrix, str):
         matrix = ScoringMatrix.from_name(scoring_matrix)
+    elif scoring_matrix is not None:
+        ty = type(scoring_matrix).__name__
+        raise TypeError(f"expected ScoringMatrix, str or None, got {ty}")
     elif match_score is not None:
         matrix = ScoringMatrix.from_match_mismatch(
             alphabet=_PROTEIN.letters if protein else _DNA.letters,
