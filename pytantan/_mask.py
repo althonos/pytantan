@@ -1,6 +1,6 @@
 import collections
 
-from .lib import Alphabet, RepeatFinder
+from .lib import Alphabet, RepeatFinder, default_scoring_matrix
 
 from scoring_matrices import ScoringMatrix
 
@@ -67,21 +67,11 @@ def mask_repeats(
         matrix = scoring_matrix
     elif isinstance(scoring_matrix, str):
         matrix = ScoringMatrix.from_name(scoring_matrix)
-    elif scoring_matrix is not None:
+    elif scoring_matrix is None:
+        matrix = default_scoring_matrix(protein, match_score, mismatch_cost)
+    else:
         ty = type(scoring_matrix).__name__
         raise TypeError(f"expected ScoringMatrix, str or None, got {ty}")
-    elif match_score is not None:
-        matrix = ScoringMatrix.from_match_mismatch(
-            alphabet=_PROTEIN.letters if protein else _DNA.letters,
-            match_score=match_score, 
-            mismatch_score=-mismatch_cost,
-        )
-    else:
-        matrix = ScoringMatrix.from_match_mismatch(
-            alphabet=_PROTEIN.letters if protein else _DNA.letters,
-            match_score=1.0, 
-            mismatch_score=-1.0,
-        )
 
     repeat_finder = RepeatFinder(
         matrix,

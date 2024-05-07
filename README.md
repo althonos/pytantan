@@ -46,9 +46,10 @@ Tantan interface rather than with the CLI, which has the following advantages:
 
 ## 🔧 Installing
 
-PyTantan is available for all modern versions (3.6+), optionally depending on
-the lightweight Python package [`archspec`](https://pypi.org/project/archspec)
-for runtime CPU feature detection.
+PyTantan is available for all modern versions (3.6+), depending only on the
+[`scoring-matrices`](https://pypi.org/project/scoring-matrices) package, and
+optionally on the lightweight [`archspec`](https://pypi.org/project/archspec)
+package for runtime CPU feature detection.
 
 <!-- It can be installed directly from [PyPI](https://pypi.org/project/pytantan/),
 which hosts some pre-built x86-64 wheels for Linux, MacOS, and Windows,

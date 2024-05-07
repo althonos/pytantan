@@ -71,6 +71,31 @@ if TARGET_CPU == "aarch64":
 if TARGET_CPU == "x86_64":
     _SSE2_RUNTIME_SUPPORT = SSE2_BUILD_SUPPORT
 
+
+# --- Utils --------------------------------------------------------------------
+
+cpdef ScoringMatrix default_scoring_matrix(
+    bint protein = False,
+    object match_score = None,
+    object mismatch_cost = None
+):
+    """Get the default Tantan scoring matrix for the given parameters.
+    """
+    if (match_score is None) != (mismatch_cost is None):
+        raise ValueError("Cannot set either `match_score` or `mismatch_cost` without setting the two")
+    if match_score is not None:
+        alphabet = PROTEIN.decode('ascii') if protein else DNA.decode('ascii')
+        return ScoringMatrix.from_match_mismatch(
+            alphabet=alphabet,
+            match_score=match_score,
+            mismatch_score=-mismatch_cost,
+        )
+    elif protein:
+        return ScoringMatrix.from_name("BLOSUM62").shuffle(PROTEIN.decode('ascii'))
+    else:
+        return ScoringMatrix.from_match_mismatch(1.0, -1.0, alphabet=DNA.decode('ascii'))
+
+
 # --- Parameters ---------------------------------------------------------------
 
 cdef class Alphabet:
@@ -305,14 +330,14 @@ cdef class LikelihoodMatrix:
         Arguments:
             alphabet (`str` or `~pytantan.Alphabet`): The alphabet of the
                 similarity matrix.
-            scoring_matrix (`scoring_matrices.ScoringMatrix`): The scoring 
+            scoring_matrix (`scoring_matrices.ScoringMatrix`): The scoring
                 matrix, indexed by the alphabet characters.
 
         """
         cdef size_t              i
         cdef size_t              colsize
         cdef double              lambda_
-        cdef const float**       matrix 
+        cdef const float**       matrix
         cdef size_t              size
         cdef vector[char]        cols    = vector[char]()
         cdef vector[vector[int]] scores  = vector[vector[int]]()
@@ -350,7 +375,7 @@ cdef class LikelihoodMatrix:
         if self.fastMatrixPointers is not NULL:
             free(self.fastMatrixPointers[0])
         free(self.fastMatrixPointers)
-    
+
 
 # --- RepeatFinder -------------------------------------------------------------
 
@@ -379,7 +404,7 @@ cdef class RepeatFinder:
         """Create a new repeat finder.
 
         Arguments:
-            scoring_matrix (`~pytantan.ScoringMatrix`): The scoring matrix to 
+            scoring_matrix (`~pytantan.ScoringMatrix`): The scoring matrix to
                 use for scoring sequence alignments.
             repeat_start (`float`): The probability of a repeat starting
                 per position.
@@ -476,7 +501,7 @@ cdef class RepeatFinder:
                 the repeats to mask.
             threshold (`float`): The probability threshold above which to
                 mask sequence characters.
-            mask (`str` or `None`): A single mask character to use for 
+            mask (`str` or `None`): A single mask character to use for
                 masking positions. If `None` given, masking uses the
                 lowercase letters of the original sequence.
 
@@ -485,7 +510,7 @@ cdef class RepeatFinder:
 
         Example:
             >>> matrix = ScoringMatrix(
-            ...     [[ 1, -1, -1, -1], 
+            ...     [[ 1, -1, -1, -1],
             ...      [-1,  1, -1, -1],
             ...      [-1, -1,  1, -1],
             ...      [-1, -1, -1,  1]],
