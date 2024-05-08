@@ -433,7 +433,7 @@ cdef class RepeatFinder:
 
     cdef readonly Alphabet         alphabet
     cdef readonly ScoringMatrix    scoring_matrix
-    cdef          LikelihoodMatrix likelihood_matrix
+    cdef readonly LikelihoodMatrix likelihood_matrix
 
     def __cinit__(self):
         self._mask_sequences = NULL

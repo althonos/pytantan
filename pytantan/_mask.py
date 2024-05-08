@@ -33,10 +33,10 @@ def mask_repeats(
             the repeats to mask.
         protein (`bool`): Set to `True` to treat the input sequence as
             a protein sequence.
-        scoring_matrix (`str` or `~scoring_matrices.ScoringMatrix`): A 
-            scoring matrix to use for scoring character matches and 
-            mismatches. Either pass a matrix name (such as ``BLOSUM62``) 
-            to load a built-in matrix, or a pre-initialized `ScoringMatrix` 
+        scoring_matrix (`str` or `~scoring_matrices.ScoringMatrix`): A
+            scoring matrix to use for scoring character matches and
+            mismatches. Either pass a matrix name (such as ``BLOSUM62``)
+            to load a built-in matrix, or a pre-initialized `ScoringMatrix`
             object.
         match_score (`int`): The score for scoring character matches.
             Must be set along `mismatch_cost`. Incompatible with the
@@ -51,7 +51,7 @@ def mask_repeats(
         decay (`float`): The probability decay per period.
         threshold (`float`): The probability threshold above which to
             mask sequence characters.
-        mask (`str` or `None`): A single mask character to use for 
+        mask (`str` or `None`): A single mask character to use for
             masking positions. If `None` given, masking uses the
             lowercase letters of the original sequence.
 
@@ -79,7 +79,7 @@ def mask_repeats(
         repeat_end=repeat_end,
         decay=decay,
         protein=protein,
-    )        
+    )
     return repeat_finder.mask_repeats(
         sequence,
         threshold=threshold,
