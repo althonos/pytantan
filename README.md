@@ -51,13 +51,12 @@ PyTantan is available for all modern versions (3.6+), depending only on the
 optionally on the lightweight [`archspec`](https://pypi.org/project/archspec)
 package for runtime CPU feature detection.
 
-<!-- It can be installed directly from [PyPI](https://pypi.org/project/pytantan/),
-which hosts some pre-built x86-64 wheels for Linux, MacOS, and Windows,
-Aarch64 wheels for Linux and MacOS, as well as the code required to 
-compile from source with Cython:
+It can be installed directly from [PyPI](https://pypi.org/project/pytantan/),
+which hosts some pre-built wheels for Linux and MacOS, as well as the code 
+required to compile from source with Cython:
 ```console
 $ pip install pytantan
-``` -->
+```
 
 <!-- Otherwise, PyTantan is also available as a [Bioconda](https://bioconda.github.io/)
 package:
@@ -65,8 +64,8 @@ package:
 $ conda install -c bioconda pytantan
 ``` -->
 
-<!-- Check the [*install* page](https://pytantan.readthedocs.io/en/stable/install.html)
-of the documentation for other ways to install PyTantan on your machine. -->
+Check the [*install* page](https://pytantan.readthedocs.io/en/stable/install.html)
+of the documentation for other ways to install PyTantan on your machine.
 
 ## 💡 Example
 
