@@ -291,10 +291,10 @@ class build_ext(_build_ext):
             "NEON",
             self._neon_flags(),
             header="arm_neon.h",
-            vector="int16x8_t",
-            set="vdupq_n_s16",
-            op="vabsq_s16",
-            extract="vgetq_lane_s16",
+            vector="float64x2_t",
+            set="vdupq_n_f64",
+            op="vabsq_f64",
+            extract="vgetq_lane_f64",
         )
 
     def _check_getid(self):
@@ -469,7 +469,7 @@ class build_ext(_build_ext):
                 self._simd_supported["SSE2"] = True
                 self._simd_flags["SSE2"].extend(self._sse2_flags())
                 self._simd_defines["SSE2"].append(("__SSE2__", 1))
-        elif self.target_cpu == "arm" or self.target_cpu == "aarch64":
+        elif self.target_cpu == "aarch64":
             if not self._simd_disabled["NEON"] and self._check_neon():
                 cython_args["compile_time_env"]["NEON_BUILD_SUPPORT"] = True
                 self._simd_supported["NEON"] = True
