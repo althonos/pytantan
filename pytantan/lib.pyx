@@ -99,6 +99,8 @@ cpdef ScoringMatrix default_scoring_matrix(
 # --- Parameters ---------------------------------------------------------------
 
 cdef class Alphabet:
+    """An alphabet used for encoding sequences with ordinal encoding.
+    """
     cdef readonly str       letters
     cdef          bint      _protein
     cdef          _Alphabet _abc
@@ -237,10 +239,36 @@ cdef class Alphabet:
 
 
 cdef class LikelihoodMatrix:
+    r"""A likelihood ratio matrix derived from a scoring matrix.
+
+    This matrix is in the form:
+
+    .. math::
+
+        \mathcal{L}_{x,y} = \frac{Q_{x,y}}{P_x P_y}
+
+    where :math:`Q_{x,y}` is the probability of seeing letters :math:`x` and
+    :math:`y` in equivalent positions of a tandem repeat, and :math:`P_x` is
+    the background probability of letter :math:`x`.
+
+    This matrix is related to a scoring matrix :math:`\mathcal{M}` with an
+    implicit scale factor :math:`\lambda` by the following equation:
+
+    .. math::
+
+        \mathcal{L}_{x,y} = e^{ \lambda \mathcal{M}_{x,y} }
+
+    Attributes:
+        alphabet (`Alphabet`): The alphabet used to index the rows and
+            columns of the matrix.
+        scoring_matrix (`~scoring_matrices.ScoringMatrix` or `None`): The
+            scoring matrix this likelihood ratio matrix was derived from,
+            or `None` if it was created with explicit values.
+
+    """
     cdef Py_ssize_t             _shape[2]
 
     cdef readonly Alphabet      alphabet
-    cdef readonly str           columns
     cdef readonly ScoringMatrix scoring_matrix
 
     cdef int**    fastMatrixPointers
@@ -330,7 +358,7 @@ cdef class LikelihoodMatrix:
         Arguments:
             alphabet (`str` or `~pytantan.Alphabet`): The alphabet of the
                 similarity matrix.
-            scoring_matrix (`scoring_matrices.ScoringMatrix`): The scoring
+            scoring_matrix (`~scoring_matrices.ScoringMatrix`): The scoring
                 matrix, indexed by the alphabet characters.
 
         """
@@ -350,8 +378,7 @@ cdef class LikelihoodMatrix:
         if not scoring_matrix.is_integer():
             raise ValueError("Expected integer scoring matrix")
         self.scoring_matrix = scoring_matrix
-        self.columns = self.scoring_matrix.alphabet
-        for l in self.columns:
+        for l in self.scoring_matrix.alphabet:
             cols.push_back(ord(l))
 
         # extract scores
@@ -380,6 +407,18 @@ cdef class LikelihoodMatrix:
 # --- RepeatFinder -------------------------------------------------------------
 
 cdef class RepeatFinder:
+    """A repeat finder using the Tantan method.
+
+    Attributes:
+        alphabet (`Alphabet`): The alphabet to use for encoding and decoding
+            sequences.
+        scoring_matrix (`~scoring_matrices.ScoringMatrix` or `None`): The
+            scoring matrix used to derive the likelihood ratio matrix,
+            if any.
+        likelihood_matrix (`LikelihoodMatrix`): The likelihood ratio matrix
+            used for scoring letter pairs in tandem repeats.
+
+    """
     cdef          TantanOptions _options
     cdef          _mask_fn_t    _mask_sequences
     cdef          _probas_fn_t  _get_probabilities
@@ -404,8 +443,8 @@ cdef class RepeatFinder:
         """Create a new repeat finder.
 
         Arguments:
-            scoring_matrix (`~pytantan.ScoringMatrix`): The scoring matrix to
-                use for scoring sequence alignments.
+            scoring_matrix (`~scoring_matrices.ScoringMatrix`): The scoring 
+                matrix to use for scoring sequence alignments.
             repeat_start (`float`): The probability of a repeat starting
                 per position.
             repeat_end (`float`): The probability of a repeat ending per

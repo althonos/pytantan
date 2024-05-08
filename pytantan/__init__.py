@@ -6,9 +6,11 @@ __license__ = "GPLv3+"
 __all__ = [
     "Alphabet",
     "RepeatFinder",
+    "LikelihoodMatrix",
     "mask_repeats",
+    "default_scoring_matrix",
 ]
 
 from . import lib
 from ._mask import mask_repeats
-from .lib import Alphabet, RepeatFinder
+from .lib import Alphabet, RepeatFinder, LikelihoodMatrix, default_scoring_matrix
