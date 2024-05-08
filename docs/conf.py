@@ -37,16 +37,16 @@ def setup(app):
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-import scoring_matrices
+import pytantan
 
 # extract the project metadata from the module itself
-project = scoring_matrices.__name__
-author = re.match("(.*) <.*>", scoring_matrices.__author__).group(1)
+project = pytantan.__name__
+author = re.match("(.*) <.*>", pytantan.__author__).group(1)
 year = datetime.date.today().year
 copyright = "{}, {}".format("2024" if year == 2024 else "2024-{}".format(year), author)
 
 # extract the semantic version
-semver = semantic_version.Version.coerce(scoring_matrices.__version__)
+semver = semantic_version.Version.coerce(pytantan.__version__)
 version = str(semver.truncate(level="patch"))
 release = str(semver)
 
@@ -61,10 +61,10 @@ project_urls = dict(
 
 # patch the docstring so that we don't show the link to redirect
 # to the docs (we don't want to see it when reading the docs already, duh!)
-doc_lines = scoring_matrices.__doc__.splitlines()
+doc_lines = pytantan.__doc__.splitlines()
 if "See Also:" in doc_lines:
     see_also = doc_lines.index("See Also:")
-    scoring_matrices.__doc__ = "\n".join(doc_lines[:see_also])
+    pytantan.__doc__ = "\n".join(doc_lines[:see_also])
 
 
 # -- General configuration ---------------------------------------------------

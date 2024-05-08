@@ -1,5 +1,13 @@
 # distutils: language = c++
 # cython: language_level=3, linetrace=True, binding=True
+"""Bindings to tantan, a method for finding repeats in biological sequences.
+
+References:
+    - Frith, Martin C. *A new repeat-masking method enables specific detection 
+      of homologous sequences.* Nucleic acids research vol. 39,4 (2011): e23. 
+      :doi:`10.1093/nar/gkq1212`.
+
+"""
 
 # --- C imports ----------------------------------------------------------------
 
