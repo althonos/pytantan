@@ -70,7 +70,7 @@ def load_tests(loader, tests, ignore):
     packages = [None, pytantan.lib]
 
     for pkg in iter(packages.pop, None):
-        globs = dict(pyopal=pytantan, ScoringMatrix=ScoringMatrix, Bio=Bio, **pkg.__dict__)
+        globs = dict(pytantan=pytantan, ScoringMatrix=ScoringMatrix, Bio=Bio, **pkg.__dict__)
         tests.addTests(
             doctest.DocTestSuite(
                 pkg,
@@ -80,28 +80,5 @@ def load_tests(loader, tests, ignore):
                 optionflags=+doctest.ELLIPSIS,
             )
         )
-        # for (_, subpkgname, subispkg) in pkgutil.walk_packages(pkg.__path__):
-        #     # do not import __main__ module to avoid side effects!
-        #     if subpkgname == "__main__" or subpkgname.startswith("tests"):
-        #         continue
-        #     # import the submodule and add it to the tests
-        #     module = importlib.import_module(".".join([pkg.__name__, subpkgname]))
-        #     if hasattr(module, "__test__"):
-        #         del module.__test__
-        #     globs = dict(pyopal=pytantan, Bio=Bio, **module.__dict__)
-        #     tests.addTests(
-        #         doctest.DocTestSuite(
-        #             module,
-        #             globs=globs,
-        #             setUp=setUp,
-        #             tearDown=tearDown,
-        #             optionflags=+doctest.ELLIPSIS,
-        #         )
-        #     )
-        #     # if the submodule is a package, we need to process its submodules
-        #     # as well, so we add it to the package queue, unless it is the
-        #     # `pyopal.tests` package (we don't need to check for doctests there)
-        #     if subispkg and subpkgname != "tests":
-        #         packages.append(module)
 
     return tests
