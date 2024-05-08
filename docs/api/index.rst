@@ -11,6 +11,9 @@ Functions
 
 .. autofunction:: pytantan.mask_repeats
 
+.. autofunction:: pytantan.default_scoring_matrix
+
+
 
 Classes
 -------
