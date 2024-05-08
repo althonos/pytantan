@@ -5,11 +5,12 @@ include README.md
 
 recursive-include patches             *.patch
 recursive-include pytantan/tests      *.py requirements.txt
-recursive-include pytantan/platform   *.in
+recursive-include pytantan/platform   *.in *.pxd
+recursive-include pytantan/tantan     *.hh *.pxd
 
 recursive-include vendor/tantan       Makefile README.rst COPYING.txt
 recursive-include vendor/tantan/src   Makefile *.cc *.hh 
 
 recursive-include pytantan            *.py *.pyi *.pxi *.pyx *.pxd *.h py.typed
 recursive-exclude pytantan            *.cpp *.html
-recursive-exclude pytantan/platform   *.cpp *.pyx *.pxd
+recursive-exclude pytantan/platform   *.cpp *.pyx
