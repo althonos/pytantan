@@ -550,7 +550,7 @@ setuptools.setup(
             language="c++",
             simd="NEON",
             define_macros=[("__ARM_NEON", 1)],
-            include_dirs=["pytantan"],
+            include_dirs=["pytantan", os.path.join("vendor", "tantan", "src")],
             templates={
                 os.path.join("pytantan", "platform", "neon.pxd"): os.path.join("pytantan", "platform", "pxd.in"),
                 os.path.join("pytantan", "platform", "neon.pyx"): os.path.join("pytantan", "platform", "pyx.in"),
