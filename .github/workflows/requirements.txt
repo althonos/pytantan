@@ -5,4 +5,4 @@ auditwheel
 setuptools >=46.4.0
 importlib-resources ; python_version < '3.7'
 archspec ~=0.2      ; os_name != 'nt'
-scoring-matrices ~=0.2
+scoring-matrices ~=0.2.0
