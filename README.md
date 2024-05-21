@@ -12,7 +12,7 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/pytantan.svg?style=flat-square&maxAge=600&logo=python)](https://pypi.org/project/pytantan/#files)
 [![Python Implementations](https://img.shields.io/pypi/implementation/pytantan.svg?style=flat-square&maxAge=600&label=impl)](https://pypi.org/project/pytantan/#files)
 [![Source](https://img.shields.io/badge/source-GitHub-303030.svg?maxAge=2678400&style=flat-square)](https://github.com/althonos/pytantan/)
-[![Mirror](https://img.shields.io/badge/mirror-EMBL-009f4d?style=flat-square&maxAge=2678400)](https://git.embl.de/larralde/pytantan/)
+[![Mirror](https://img.shields.io/badge/mirror-LUMC-003eaa?style=flat-square&maxAge=2678400)](https://git.lumc.nl/mflarralde/pytantan/)
 [![Issues](https://img.shields.io/github/issues/althonos/pytantan.svg?style=flat-square&maxAge=600)](https://github.com/althonos/pytantan/issues)
 [![Docs](https://img.shields.io/readthedocs/pytantan/latest?style=flat-square&maxAge=600)](https://pytantan.readthedocs.io)
 [![Changelog](https://img.shields.io/badge/keep%20a-changelog-8A0707.svg?maxAge=2678400&style=flat-square)](https://github.com/althonos/pytantan/blob/main/CHANGELOG.md)
