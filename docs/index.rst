@@ -51,7 +51,7 @@ PyTantan |Stars|
    :target: https://pepy.tech/project/pytantan
 
 
-.. currentmodule:: scoring_matrices
+.. currentmodule:: pytantan
 
 
 Overview
