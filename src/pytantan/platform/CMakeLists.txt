@@ -1,0 +1,26 @@
+set(SIMD "None")
+configure_file(pyx.in ${CMAKE_CURRENT_SOURCE_DIR}/generic.pyx)
+configure_file(pxd.in ${CMAKE_CURRENT_SOURCE_DIR}/generic.pxd)
+cython_extension(generic SOURCES ${TANTAN_CC})
+
+if(HAVE_SSE4)
+    set(SIMD "SSE4")
+    configure_file(pyx.in ${CMAKE_CURRENT_SOURCE_DIR}/sse4.pyx)
+    configure_file(pxd.in ${CMAKE_CURRENT_SOURCE_DIR}/sse4.pxd)
+    cython_extension(sse4 SOURCES ${TANTAN_CC} OPTIONS ${SSE4_C_FLAGS})
+endif()
+
+if(HAVE_AVX2)
+    set(SIMD "AVX2")
+    configure_file(pyx.in ${CMAKE_CURRENT_SOURCE_DIR}/avx2.pyx)
+    configure_file(pxd.in ${CMAKE_CURRENT_SOURCE_DIR}/avx2.pxd)
+    cython_extension(avx2 SOURCES ${TANTAN_CC} OPTIONS ${AVX2_C_FLAGS})
+endif()
+
+if(HAVE_NEON)
+    set(SIMD "NEON")
+    configure_file(pyx.in ${CMAKE_CURRENT_SOURCE_DIR}/neon.pyx)
+    configure_file(pxd.in ${CMAKE_CURRENT_SOURCE_DIR}/neon.pxd)
+    cython_extension(neon SOURCES ${TANTAN_CC} OPTIONS ${NEON_C_FLAGS})
+endif()
+
