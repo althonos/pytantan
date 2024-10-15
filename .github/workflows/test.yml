@@ -66,13 +66,16 @@ jobs:
     - name: Test with coverage
       run: python -m coverage run -m unittest pytantan.tests -vv
     - name: Upload to Codecov
+      uses: codecov/codecov-action@v4
       if: matrix.python-impl == 'CPython'
-      uses: codecov/codecov-action@v3
       with:
-        flags: ${{ matrix.python-impl }},${{ matrix.python-release }},${{ env.OS }}
+        flags: ${{ matrix.python-release }}
+        env_vars: OS
         name: test-python-${{ matrix.python-version }}
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
+        codecov_curl_args: "--globoff"
+        verbose: true
 
   test_osx:
     name: Test (OSX)
@@ -135,13 +138,16 @@ jobs:
     - name: Test with coverage
       run: python -m coverage run -m unittest pytantan.tests -vv
     - name: Upload to Codecov
+      uses: codecov/codecov-action@v4
       if: matrix.python-impl == 'CPython'
-      uses: codecov/codecov-action@v3
       with:
-        flags: ${{ matrix.python-impl }},${{ matrix.python-release }},${{ env.OS }}
+        flags: ${{ matrix.python-release }}
+        env_vars: OS
         name: test-python-${{ matrix.python-version }}
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
+        codecov_curl_args: "--globoff"
+        verbose: true
 
   # test_windows:
   #   name: Test (Windows)
