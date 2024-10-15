@@ -21,9 +21,9 @@ Classes
 .. toctree::
    :hidden:
 
-   alphabet <alphabet>
-   likelihood_matrix <likelihood_matrix>
-   repeat_finder <repeat_finder>
+   Alphabet <alphabet>
+   LikelihoodMatrix <likelihood_matrix>
+   RepeatFinder <repeat_finder>
 
 
 .. only:: html
