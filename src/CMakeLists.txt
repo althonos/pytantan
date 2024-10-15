@@ -1,6 +1,6 @@
 file(COPY ../vendor/tantan DESTINATION .)
 file(COPY ./tantan DESTINATION .)
-file(CONFIGURE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/tantan/src/version.hh CONTENT "${CMAKE_PROJECT_VERSION}")
+file(CONFIGURE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/tantan/src/version.hh CONTENT "\"${CMAKE_PROJECT_VERSION}\"")
 
 set(TANTAN_CC ${CMAKE_CURRENT_BINARY_DIR}/tantan/src/tantan.cc)
 
