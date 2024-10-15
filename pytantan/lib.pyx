@@ -3,8 +3,8 @@
 """Bindings to tantan, a method for finding repeats in biological sequences.
 
 References:
-    - Frith, Martin C. *A new repeat-masking method enables specific detection 
-      of homologous sequences.* Nucleic acids research vol. 39,4 (2011): e23. 
+    - Frith, Martin C. *A new repeat-masking method enables specific detection
+      of homologous sequences.* Nucleic acids research vol. 39,4 (2011): e23.
       :doi:`10.1093/nar/gkq1212`.
 
 """
@@ -122,6 +122,16 @@ cdef class Alphabet:
         return cls(PROTEIN.decode('ascii'), protein=True)
 
     def __init__(self, str letters not None, bint protein = False):
+        """__init__(self, letters, protein)\n--\n
+
+        Create a new alphabet with the given letters.
+
+        Arguments:
+            letters (`str`): The letters of the alphabet, in order.
+            protein (`bool`): Set to `True` to signal that this alphabet is
+                a protein alphabet and not a nucleotide one.
+
+        """
         if len(letters) != len(set(letters)):
             raise ValueError(f"Duplicate letters found in alphabet: {letters!r}")
         elif not letters.isupper():
@@ -361,7 +371,9 @@ cdef class LikelihoodMatrix:
         Alphabet alphabet not None,
         ScoringMatrix scoring_matrix not None,
     ):
-        """Create a new score matrix from the given alphabet and scores.
+        """__init__(self, alphabet, scoring_matrix)\n--\n
+
+        Create a new score matrix from the given alphabet and scores.
 
         Arguments:
             alphabet (`str` or `~pytantan.Alphabet`): The alphabet of the
@@ -448,10 +460,12 @@ cdef class RepeatFinder:
         double decay = 0.9,
         bint protein = False,
     ):
-        """Create a new repeat finder.
+        """__init__(self, scoring_matrix, *, repeat_start=0.005, repeat_end=0.05, decay=0.9, protein=False)\n--\n
+
+        Create a new repeat finder.
 
         Arguments:
-            scoring_matrix (`~scoring_matrices.ScoringMatrix`): The scoring 
+            scoring_matrix (`~scoring_matrices.ScoringMatrix`): The scoring
                 matrix to use for scoring sequence alignments.
             repeat_start (`float`): The probability of a repeat starting
                 per position.
