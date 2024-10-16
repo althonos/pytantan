@@ -6,10 +6,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 
 ## [Unreleased]
-[Unreleased]: https://github.com/althonos/pytantan/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/althonos/pytantan/compare/v0.1.2...HEAD
 
 
-## [v0.1.0] - 2024-05-15
+## [v0.1.2] - 2024-10-15
+[v0.1.2]: https://github.com/althonos/pytantan/compare/v0.1.1...v0.1.2
+
+### Changed
+- Rewrite package build using `scikit-build-core`.
+- Update documentation to use the PyData theme.
+
+### Removed
+- Support for Python 3.6.
+
+
+## [v0.1.1] - 2024-05-15
 [v0.1.1]: https://github.com/althonos/pytantan/compare/v0.1.0...v0.1.1
 
 ### Fixed

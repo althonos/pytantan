@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pytantan"
-version = "0.1.1"
+version = "0.1.2"
 description = "Cython bindings and Python interface to Tantan, a fast method for identifying repeats in DNA and protein sequences."
 readme = "README.md"
 requires-python = ">=3.7"

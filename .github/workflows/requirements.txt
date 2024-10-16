@@ -1,6 +1,6 @@
 coverage ~=6.0
 cython ~=3.0
-auditwheel
+build
 importlib-resources ; python_version < '3.7'
 archspec ~=0.2      ; os_name != 'nt'
 scoring-matrices ~=0.2.0

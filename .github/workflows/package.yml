@@ -43,9 +43,9 @@ jobs:
         CIBW_TEST_REQUIRES: importlib-resources
       with:
         output-dir: dist
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: wheels-${{ matrix.python-tag }}
         path: dist/*
 
   wheel-linux-x86_64:
@@ -79,9 +79,9 @@ jobs:
         CIBW_TEST_REQUIRES: importlib-resources
       with:
         output-dir: dist
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: wheels-${{ matrix.python-tag }}
         path: dist/*
 
   wheel-macos-x86_64:
@@ -115,9 +115,9 @@ jobs:
         CIBW_TEST_REQUIRES: importlib-resources
       with:
         output-dir: dist
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: wheels-${{ matrix.python-tag }}
         path: dist/*
 
   wheel-macos-aarch64:
@@ -146,9 +146,9 @@ jobs:
         CIBW_TEST_REQUIRES: importlib-resources
       with:
         output-dir: dist
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: wheels-${{ matrix.python-tag }}
         path: dist/*
 
   # wheel-win32-x86_64:
@@ -202,11 +202,11 @@ jobs:
     - name: Install build requirements
       run: python -m pip install -r .github/workflows/requirements.txt
     - name: Build source distribution
-      run: python setup.py sdist
-    - name: Store built source distribution
-      uses: actions/upload-artifact@v2
+      run: python -m build --sdist
+    - name: Store built wheels
+      uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: sdist
         path: dist/*
 
   test-sdist:
@@ -219,11 +219,11 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.11'
-    - name: Download built wheels
-      uses: actions/download-artifact@v2
+    - name: Download source distribution
+      uses: actions/download-artifact@v4
       with:
-          name: wheels
-          path: dist/
+        name: sdist
+        path: dist/
     - name: Update pip to latest version
       run: python -m pip install -U pip setuptools wheel
     - name: Install built wheel
@@ -246,10 +246,18 @@ jobs:
     - wheel-macos-x86_64
     # - wheel-win32-x86_64
     steps:
-    - uses: actions/download-artifact@v2
+    - name: Download source distribution
+      uses: actions/download-artifact@v4
       with:
-        name: wheels
-        path: dist
+        name: sdist
+        path: dist/
+        merge-multiple: true
+    - name: Download wheel distributions
+      uses: actions/download-artifact@v4
+      with:
+        pattern: wheels-*
+        path: dist/
+        merge-multiple: true
     - uses: pypa/gh-action-pypi-publish@release/v1
       if: startsWith(github.ref, 'refs/tags')
 
@@ -292,7 +300,7 @@ jobs:
           name: wheels
           path: dist
     - name: Extract package version
-      run: echo PKGVER=$(python setup.py --version) >> $GITHUB_ENV
+      run: echo PKGVER=${{ github.ref }} >> $GITHUB_ENV
     - name: Compute SHA256 of source distribution
       run: echo SHA256=$(sha256sum dist/pytantan-${{ env.PKGVER }}.tar.gz | cut -f1 -d' ') >> $GITHUB_ENV
     - name: Generate PKGBUILD
