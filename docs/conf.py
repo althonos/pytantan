@@ -44,15 +44,6 @@ semver = semantic_version.Version.coerce(pytantan.__version__)
 version = str(semver.truncate(level="patch"))
 release = str(semver)
 
-# extract the project URLs from ``setup.cfg``
-cfgparser = configparser.ConfigParser()
-cfgparser.read(os.path.join(project_dir, "setup.cfg"))
-project_urls = dict(
-    map(str.strip, line.split(" = ", 1))
-    for line in cfgparser.get("metadata", "project_urls").splitlines()
-    if line.strip()
-)
-
 # patch the docstring so that we don't show the link to redirect
 # to the docs (we don't want to see it when reading the docs already, duh!)
 doc_lines = pytantan.__doc__.splitlines()
