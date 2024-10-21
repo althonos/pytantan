@@ -121,7 +121,7 @@ the CLI, which has the following advantages:
 Setup
 -----
 
-PyTantan is available for all modern Python versions (3.6+).
+PyTantan is available for all modern Python versions (3.7+).
 
 Run ``pip install pytantan`` in a shell to download the latest release 
 from PyPi, or have a look at the :doc:`Installation page <guide/install>` to find 
