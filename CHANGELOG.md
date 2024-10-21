@@ -6,7 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 
 ## [Unreleased]
-[Unreleased]: https://github.com/althonos/pytantan/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/althonos/pytantan/compare/v0.1.3...HEAD
+
+
+## [v0.1.3] - 2024-10-21
+[v0.1.3]: https://github.com/althonos/pytantan/compare/v0.1.2...v0.1.3
+
+### Changed
+- Update `scoring-matrices` dependency to `v0.3.0`.
 
 
 ## [v0.1.2] - 2024-10-15

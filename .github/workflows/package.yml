@@ -267,8 +267,7 @@ jobs:
     if: "!contains(github.ref, 'rc')"
     name: Release
     needs: upload
-    permissions:
-      contents: write
+    permissions: write-all
     steps:
     - uses: actions/checkout@v4
       with:
