@@ -17,7 +17,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
     "Programming Language :: C",
     "Programming Language :: Cython",
@@ -52,11 +52,6 @@ dependencies = [
 build-dir = "build/{build_type}"
 editable.rebuild = true
 editable.verbose = false
-
-[[tool.scikit-build.generate]]
-path = "src/pytantan/_version.py"
-template = '__version__ = "${version}"'
-location = 'source'
 
 [[tool.scikit-build.overrides]]
 if.state = "editable"

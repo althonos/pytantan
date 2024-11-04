@@ -1,6 +1,4 @@
 # noqa: D104
-from ._version import __version__
-
 __author__ = "Martin Larralde <martin.larralde@embl.de>"
 __license__ = "GPLv3+"
 __all__ = [
@@ -13,7 +11,13 @@ __all__ = [
 
 from . import lib
 from ._mask import mask_repeats
-from .lib import Alphabet, RepeatFinder, LikelihoodMatrix, default_scoring_matrix
+from .lib import (
+    __version__,
+    Alphabet,
+    RepeatFinder,
+    LikelihoodMatrix,
+    default_scoring_matrix
+)
 
 # Use the library documentation
 __doc__ = lib.__doc__

@@ -45,6 +45,8 @@ cdef extern from "<cctype>" namespace "std" nogil:
     cdef int toupper(int ch)
     cdef int tolower(int ch)
 
+__version__ = PROJECT_VERSION
+
 # --- Python imports -----------------------------------------------------------
 
 import array
