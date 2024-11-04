@@ -64,18 +64,18 @@ jobs:
     - name: Build C extension in debug mode
       run: python -m pip install -v -e . --no-build-isolation
     - name: Test with coverage
-      run: python -m coverage run -m unittest pytantan.tests -vv
-    - name: Upload to Codecov
-      uses: codecov/codecov-action@v4
-      if: matrix.python-impl == 'CPython'
-      with:
-        flags: ${{ matrix.python-release }}
-        env_vars: OS
-        name: test-python-${{ matrix.python-version }}
-        fail_ci_if_error: false
-        token: ${{ secrets.CODECOV_TOKEN }}
-        codecov_curl_args: "--globoff"
-        verbose: true
+      run: python -m unittest pytantan.tests -vv
+    # - name: Upload to Codecov
+    #   uses: codecov/codecov-action@v4
+    #   if: matrix.python-impl == 'CPython'
+    #   with:
+    #     flags: ${{ matrix.python-release }}
+    #     env_vars: OS
+    #     name: test-python-${{ matrix.python-version }}
+    #     fail_ci_if_error: false
+    #     token: ${{ secrets.CODECOV_TOKEN }}
+    #     codecov_curl_args: "--globoff"
+    #     verbose: true
 
   test_osx:
     name: Test (OSX)
@@ -138,19 +138,19 @@ jobs:
       run: python -m pip install -r .github/workflows/requirements.txt
     - name: Build C extension in debug mode
       run: python -m pip install -v -e . --no-build-isolation
-    - name: Test with coverage
-      run: python -m coverage run -m unittest pytantan.tests -vv
-    - name: Upload to Codecov
-      uses: codecov/codecov-action@v4
-      if: matrix.python-impl == 'CPython'
-      with:
-        flags: ${{ matrix.python-release }}
-        env_vars: OS
-        name: test-python-${{ matrix.python-version }}
-        fail_ci_if_error: false
-        token: ${{ secrets.CODECOV_TOKEN }}
-        codecov_curl_args: "--globoff"
-        verbose: true
+    - name: Test package
+      run: python -m unittest pytantan.tests -vv
+    # - name: Upload to Codecov
+    #   uses: codecov/codecov-action@v4
+    #   if: matrix.python-impl == 'CPython'
+    #   with:
+    #     flags: ${{ matrix.python-release }}
+    #     env_vars: OS
+    #     name: test-python-${{ matrix.python-version }}
+    #     fail_ci_if_error: false
+    #     token: ${{ secrets.CODECOV_TOKEN }}
+    #     codecov_curl_args: "--globoff"
+    #     verbose: true
 
   # test_windows:
   #   name: Test (Windows)
