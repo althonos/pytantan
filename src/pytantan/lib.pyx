@@ -1,5 +1,5 @@
 # distutils: language = c++
-# cython: language_level=3, linetrace=True, binding=True
+# cython: language_level=3, binding=True
 """Bindings to tantan, a method for finding repeats in biological sequences.
 
 References:

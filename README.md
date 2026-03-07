@@ -58,11 +58,11 @@ required to compile from source with Cython:
 $ pip install pytantan
 ```
 
-<!-- Otherwise, PyTantan is also available as a [Bioconda](https://bioconda.github.io/)
+Otherwise, PyTantan is also available as a [Bioconda](https://bioconda.github.io/)
 package:
 ```console
 $ conda install -c bioconda pytantan
-``` -->
+```
 
 Check the [*install* page](https://pytantan.readthedocs.io/en/stable/install.html)
 of the documentation for other ways to install PyTantan on your machine.
