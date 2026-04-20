@@ -50,6 +50,7 @@ dependencies = [
 
 [tool.scikit-build]
 build-dir = "build/{build_type}"
+wheel.py-api = "cp311"
 editable.rebuild = true
 editable.verbose = false
 
@@ -68,10 +69,9 @@ cmake.define.CMAKE_LINKER_TYPE = "mold"
 
 [tool.cibuildwheel]
 before-build = "pip install scikit-build-core cython scoring-matrices"
-build-frontend = { name = "pip", args = ["--no-build-isolation"] }
+#build-frontend = { name = "pip", args = ["--no-build-isolation"] }
 build-verbosity = 1
 test-command = "python -m unittest pytantan.tests -v"
-free-threaded-support = false
 
 [tool.coverage.run]
 plugins = ["Cython.Coverage"]
