@@ -11,7 +11,7 @@ jobs:
     name: Build Linux wheels (Aarch64)
     runs-on: ubuntu-24.04-arm
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         submodules: true
     - name: Build manylinux wheels
@@ -31,7 +31,7 @@ jobs:
     name: Build Linux wheels (x86-64)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
     - name: Build manylinux wheels
@@ -51,7 +51,7 @@ jobs:
     name: Build MacOS wheels (x86-64)
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
     - name: Build manylinux wheels
@@ -71,7 +71,7 @@ jobs:
     name: Build MacOS wheels (Aarch64)
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
     - name: Build manylinux wheels
@@ -91,7 +91,7 @@ jobs:
     name: Build Windows wheels (x86-64)
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
     - name: Configure build for amd64
@@ -116,11 +116,11 @@ jobs:
     runs-on: ubuntu-latest
     name: Build source distribution
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
     - name: Set up Python 3.12
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.12
     - name: Install build requirements
@@ -140,7 +140,7 @@ jobs:
     - sdist
     steps:
     - name: Setup Python 3.12
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.12
     - name: Download built wheels
@@ -192,7 +192,7 @@ jobs:
     needs: upload
     permissions: write-all
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
     - uses: rasmus-saks/release-a-changelog-action@v1.2.0
@@ -209,11 +209,11 @@ jobs:
     - test-sdist
     - upload
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
     - name: Set up Python 3.10
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
         python-version: '3.10'
     - name: Download source distribution
