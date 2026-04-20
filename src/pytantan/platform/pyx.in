@@ -1,9 +1,10 @@
 # distutils: language = c++
 # cython: language_level=3, linetrace=True, embedsignature=True, binding=True
 
+from cpython.pycapsule cimport PyCapsule_New
 from .. cimport tantan
 
-cdef int maskSequences${SIMD}(
+cdef int maskSequences_impl(
     unsigned char* seqBeg,
     unsigned char* seqEnd,
     int maxRepeatOffset,
@@ -32,7 +33,7 @@ cdef int maskSequences${SIMD}(
     return 0
 
 
-cdef int getProbabilities${SIMD}(
+cdef int getProbabilities_impl(
     const unsigned char* seqBeg,
     const unsigned char* seqEnd,
     int maxRepeatOffset,
@@ -57,3 +58,7 @@ cdef int getProbabilities${SIMD}(
         probabilities,
     )
     return 0
+
+
+maskSequences    = PyCapsule_New(<void*> maskSequences_impl,    NULL,    NULL)
+getProbabilities = PyCapsule_New(<void*> getProbabilities_impl, NULL, NULL)

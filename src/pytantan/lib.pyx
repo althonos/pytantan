@@ -13,6 +13,7 @@ References:
 
 cimport cython
 from cpython.buffer cimport PyBUF_FORMAT, PyBUF_READ, PyBUF_WRITE
+from cpython.pycapsule cimport PyCapsule_Import, PyCapsule_GetPointer
 
 from libc.math cimport exp
 from libc.limits cimport INT_MAX, UCHAR_MAX
@@ -26,17 +27,7 @@ from .tantan.alphabet cimport Alphabet as _Alphabet, DNA, PROTEIN
 from .tantan.score_matrix cimport ScoreMatrix as _ScoreMatrix, BLOSUM62
 from .tantan.utils cimport unstringify
 from .tantan.lc cimport LambdaCalculator
-
 from .platform cimport _mask_fn_t, _probas_fn_t
-from .platform.generic cimport maskSequencesNone, getProbabilitiesNone
-if NEON_BUILD_SUPPORT:
-    from .platform.neon cimport maskSequencesNEON, getProbabilitiesNEON
-# if SSE2_BUILD_SUPPORT:
-#     from .platform.sse2 cimport maskSequencesSSE2, getProbabilitiesSSE2
-if SSE4_BUILD_SUPPORT:
-    from .platform.sse4 cimport maskSequencesSSE4, getProbabilitiesSSE4
-if AVX2_BUILD_SUPPORT:
-    from .platform.avx2 cimport maskSequencesAVX2, getProbabilitiesAVX2
 
 from scoring_matrices cimport ScoringMatrix
 
@@ -81,6 +72,14 @@ if TARGET_CPU == "aarch64":
 if TARGET_CPU == "x86_64":
     _SSE2_RUNTIME_SUPPORT = SSE2_BUILD_SUPPORT
 
+
+from .platform import generic as _generic
+if _NEON_RUNTIME_SUPPORT:
+    from .platform import neon as _neon
+if SSE4_BUILD_SUPPORT:
+    from .platform import sse4 as _sse4
+if AVX2_BUILD_SUPPORT:
+    from .platform import avx2 as _avx2
 
 # --- Utils --------------------------------------------------------------------
 
@@ -442,16 +441,12 @@ cdef class RepeatFinder:
 
     """
     cdef          TantanOptions _options
-    cdef          _mask_fn_t    _mask_sequences
-    cdef          _probas_fn_t  _get_probabilities
+    cdef          object        _mask_sequences
+    cdef          object        _get_probabilities
 
     cdef readonly Alphabet         alphabet
     cdef readonly ScoringMatrix    scoring_matrix
     cdef readonly LikelihoodMatrix likelihood_matrix
-
-    def __cinit__(self):
-        self._mask_sequences = NULL
-        self._get_probabilities = NULL
 
     def __init__(
         self,
@@ -496,18 +491,18 @@ cdef class RepeatFinder:
         #     self._get_probabilities = getProbabilitiesSSE2
         #     self._mask_sequences = maskSequencesSSE2
         if SSE4_BUILD_SUPPORT and _SSE4_RUNTIME_SUPPORT:
-            self._get_probabilities = getProbabilitiesSSE4
-            self._mask_sequences = maskSequencesSSE4
+            self._get_probabilities = _sse4.getProbabilities
+            self._mask_sequences = _sse4.maskSequences
         if AVX2_BUILD_SUPPORT and _AVX2_RUNTIME_SUPPORT:
-            self._get_probabilities = getProbabilitiesAVX2
-            self._mask_sequences = maskSequencesAVX2
+            self._get_probabilities = _avx2.getProbabilities
+            self._mask_sequences = _avx2.maskSequences
         if NEON_BUILD_SUPPORT and _NEON_RUNTIME_SUPPORT:
-            self._get_probabilities = getProbabilitiesNEON
-            self._mask_sequences = maskSequencesNEON
-        if self._get_probabilities is NULL:
-            self._get_probabilities = getProbabilitiesNone
-        if self._mask_sequences is NULL:
-            self._mask_sequences = maskSequencesNone
+            self._get_probabilities = _neon.getProbabilities
+            self._mask_sequences = _neon.maskSequences
+        if self._get_probabilities is None:
+            self._get_probabilities = _generic.getProbabilities
+        if self._mask_sequences is None:
+            self._mask_sequences = _generic.maskSequences
 
     @cython.boundscheck(False)
     cpdef object get_probabilities(self, object sequence):
@@ -523,6 +518,10 @@ cdef class RepeatFinder:
 
         """
         cdef unsigned char[::1] seq
+        cdef object             probas
+        cdef float[::1]         p
+        cdef _probas_fn_t       _probas_fn
+
         # extract sequence (FIXME)
         if isinstance(sequence, str):
             seq = bytearray(sequence, 'ascii')
@@ -531,12 +530,14 @@ cdef class RepeatFinder:
         else:
             seq = sequence.copy()
         # prepare probability array
-        cdef object     probas = array.array("f", itertools.repeat(0.0, seq.shape[0]))
-        cdef float[::1] p      = probas
+        probas = array.array("f", itertools.repeat(0.0, seq.shape[0]))
+        p      = probas
+        # select runtime dispatch method
+        _probas_fn = <_probas_fn_t> PyCapsule_GetPointer(self._get_probabilities, NULL)
         # compute probabilities
         self.alphabet.encode_into(seq, seq)
         with nogil:
-            getProbabilitiesNone(
+            _probas_fn(
                 &seq[0],
                 &seq[seq.shape[0]],
                 self._options.maxCycleLength,
@@ -589,6 +590,8 @@ cdef class RepeatFinder:
         cdef unsigned char[::1]    seq
         cdef vector[unsigned char] mask_data
         cdef unsigned char*        mask_ptr
+        cdef _mask_fn_t            _mask_fn
+
         # extract sequence
         if isinstance(sequence, str):
             seq = bytearray(sequence, 'ascii')
@@ -607,10 +610,12 @@ cdef class RepeatFinder:
             mask_ptr = mask_data.data()
         else:
             mask_ptr = self.alphabet._abc.numbersToLowercase
+        # select runtime dispatch method
+        _mask_fn = <_mask_fn_t> PyCapsule_GetPointer(self._mask_sequences, NULL)
         # mask sequence
         self.alphabet.encode_into(seq, seq)
         with nogil:
-            maskSequencesNone(
+            _mask_fn(
                 &seq[0],
                 &seq[seq.shape[0]],
                 self._options.maxCycleLength,

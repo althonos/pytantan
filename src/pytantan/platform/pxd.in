@@ -2,7 +2,7 @@
 # cython: language_level=3, linetrace=True, embedsignature=True, binding=True
 
 
-cdef int maskSequences${SIMD}(
+cdef int maskSequences_impl(
     unsigned char* seqBeg,
     unsigned char* seqEnd,
     int maxRepeatOffset,
@@ -16,7 +16,7 @@ cdef int maskSequences${SIMD}(
     const unsigned char* maskTable
 ) except 1 nogil
 
-cdef int getProbabilities${SIMD}(
+cdef int getProbabilities_impl(
     const unsigned char* seqBeg,
     const unsigned char* seqEnd,
     int maxRepeatOffset,
