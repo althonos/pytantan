@@ -151,9 +151,9 @@ jobs:
     - name: Update pip to latest version
       run: python -m pip install -U pip
     - name: Install built wheel
-      run: python -m pip install --no-binary pyopal --find-links=dist pyopal
+      run: python -m pip install --no-binary pytantan --find-links=dist pytantan
     - name: Run tests without coverage
-      run: python -m unittest pyopal.tests -vv
+      run: python -m unittest pytantan.tests -vv
   upload:
     environment: PyPI
     runs-on: ubuntu-latest
