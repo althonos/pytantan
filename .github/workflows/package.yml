@@ -87,30 +87,30 @@ jobs:
         name: wheels-macosx_arm64
         path: dist/*
 
-  wheel-win32-x86_64:
-    name: Build Windows wheels (x86-64)
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v6
-      with:
-        submodules: true
-    - name: Configure build for amd64
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: amd64
-    - name: Build manylinux wheels
-      uses: pypa/cibuildwheel@v3.4.1
-      env:
-        CIBW_ARCHS: AMD64
-        CIBW_BUILD: '*-win_amd64'
-        CIBW_BUILD_VERBOSITY: 2
-        CMAKE_GENERATOR: Ninja
-      with:
-        output-dir: dist
-    - uses: actions/upload-artifact@v4
-      with:
-        name: wheels-win_amd64
-        path: dist/*
+  #wheel-win32-x86_64:
+  #  name: Build Windows wheels (x86-64)
+  #  runs-on: windows-latest
+  #  steps:
+  #  - uses: actions/checkout@v6
+  #    with:
+  #      submodules: true
+  #  - name: Configure build for amd64
+  #    uses: ilammy/msvc-dev-cmd@v1
+  #    with:
+  #      arch: amd64
+  #  - name: Build manylinux wheels
+  #    uses: pypa/cibuildwheel@v3.4.1
+  #    env:
+  #      CIBW_ARCHS: AMD64
+  #      CIBW_BUILD: '*-win_amd64'
+  #      CIBW_BUILD_VERBOSITY: 2
+  #      CMAKE_GENERATOR: Ninja
+  #    with:
+  #      output-dir: dist
+  #  - uses: actions/upload-artifact@v4
+  #    with:
+  #      name: wheels-win_amd64
+  #      path: dist/*
 
   sdist:
     runs-on: ubuntu-latest
