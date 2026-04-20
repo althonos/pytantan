@@ -15,9 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - python-version: 3.7
-          python-release: v3.7
-          python-impl: CPython
         - python-version: 3.8
           python-release: v3.8
           python-impl: CPython
@@ -36,9 +33,9 @@ jobs:
         - python-version: 3.13
           python-release: v3.13
           python-impl: CPython
-        - python-version: pypy-3.7
-          python-release: v3.7
-          python-impl: PyPy
+        - python-version: 3.14
+          python-release: v3.14
+          python-impl: CPython
         - python-version: pypy-3.8
           python-release: v3.8
           python-impl: PyPy
@@ -86,9 +83,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - python-version: 3.7
-          python-release: v3.7
-          python-impl: CPython
         - python-version: 3.8
           python-release: v3.8
           python-impl: CPython
@@ -107,9 +101,9 @@ jobs:
         - python-version: 3.13
           python-release: v3.13
           python-impl: CPython
-        - python-version: pypy-3.7
-          python-release: v3.7
-          python-impl: PyPy
+        - python-version: 3.14
+          python-release: v3.14
+          python-impl: CPython
         - python-version: pypy-3.8
           python-release: v3.8
           python-impl: PyPy
@@ -161,9 +155,6 @@ jobs:
   #     fail-fast: false
   #     matrix:
   #       include:
-  #       - python-version: 3.7
-  #         python-release: v3.7
-  #         python-impl: CPython
   #       - python-version: 3.8
   #         python-release: v3.8
   #         python-impl: CPython
@@ -182,9 +173,9 @@ jobs:
   #       - python-version: '3.13'
   #         python-release: v3.13
   #         python-impl: CPython
-  #       - python-version: pypy-3.7
-  #         python-release: v3.7
-  #         python-impl: PyPy
+  #       - python-version: '3.14'
+  #         python-release: v3.14
+  #         python-impl: CPython
   #       - python-version: pypy-3.8
   #         python-release: v3.8
   #         python-impl: PyPy
