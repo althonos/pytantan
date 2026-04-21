@@ -228,7 +228,7 @@ jobs:
     - name: Generate PKGBUILD
       run: sed -e "s/%pkgver/${{ env.PKGVER }}/g" -e "s/%sha256sum/${{ env.SHA256 }}/g" pkg/aur/PKGBUILD.in > pkg/aur/PKGBUILD
     - name: Update package
-      uses: KSXGitHub/github-actions-deploy-aur@v2.7.2
+      uses: KSXGitHub/github-actions-deploy-aur@v4.1.3
       with:
         pkgname: python-pytantan
         pkgbuild: pkg/aur/PKGBUILD
